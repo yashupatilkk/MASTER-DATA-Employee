@@ -1,961 +1,972 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Master Data Generator</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Master Data & Locker</title>
 
-    <!-- html2pdf.js = html2canvas + jsPDF bundled. Used to render the
-         on-screen A4 preview into a real PDF that we upload to Drive. -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <style>
-        :root {
-            --primary-color: #003366;
-            --accent-color: #d32f2f;
-            --bg-color: #f0f2f5;
-            --card-bg: #ffffff;
-            --text-color: #333;
-            --border-color: #ccc;
-        }
+<style>
+:root {
+    --bg-main: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.7);
+    --bg-input: rgba(15, 23, 42, 0.8);
+    --border-light: rgba(255, 255, 255, 0.08);
+    --primary: #14b8a6;
+    --primary-dark: #0f766e;
+    --primary-glow: rgba(20, 184, 166, 0.35);
+    --accent: #f59e0b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --danger: #ef4444;
+    --success: #10b981;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+    --shadow-glow: 0 0 20px -5px var(--primary-glow);
+}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.5;
-            padding: 20px;
-        }
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+body::before {
+    content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: radial-gradient(circle at 15% 50%, rgba(20, 184, 166, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.08), transparent 25%);
+    z-index: -1; pointer-events: none;
+}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-        h1 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-        }
+h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; letter-spacing: -0.5px; }
+.section-title {
+    font-size: 1rem; font-weight: 600; color: var(--primary);
+    margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, var(--border-light), transparent); }
+.section-title i { color: var(--primary); }
 
-        /* --- Form Container --- */
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+.app-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-light);
+    height: 70px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 5%; box-shadow: var(--shadow-card);
+}
+.nav-brand { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.4rem; color: white; display: flex; align-items: center; gap: 10px; }
+.nav-brand i { color: var(--primary); }
+.nav-buttons { display: flex; gap: 12px; }
+.nav-btn {
+    background: transparent; border: 1px solid var(--border-light); color: var(--text-muted);
+    padding: 8px 20px; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; transition: all 0.3s ease; font-family: 'Poppins', sans-serif;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.nav-btn:hover { color: white; border-color: white; background: rgba(255,255,255,0.05); }
+.nav-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: var(--shadow-glow); }
+.nav-badge {
+    background: var(--accent); color: white; font-size: 0.7rem; padding: 2px 7px;
+    border-radius: 10px; font-weight: 700; margin-left: 4px;
+}
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
+.view-section { display: none; padding: 40px 5% 120px; max-width: 1200px; margin: 0 auto; animation: fadeUp 0.4s ease-out; }
+.view-section.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .full-width {
-            grid-column: span 2;
-        }
+.page-title { font-size: 1.75rem; font-weight: 600; background: linear-gradient(to right, #fff, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+.page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 30px; }
 
-        .form-group {
-            margin-bottom: 5px;
-        }
+.form-card {
+    background: var(--bg-card); border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg); padding: 30px; margin-bottom: 24px;
+    box-shadow: var(--shadow-card); backdrop-filter: blur(10px); transition: border-color 0.3s;
+}
+.form-card:hover { border-color: rgba(255,255,255,0.15); }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            font-size: 13px;
-            color: #555;
-        }
+.input-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+.col-12 { grid-column: span 12; } .col-6 { grid-column: span 6; } .col-4 { grid-column: span 4; } .col-3 { grid-column: span 3; }
+@media (max-width: 900px) { .col-6, .col-4, .col-3 { grid-column: span 12; } }
 
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 14px;
-        }
+label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; margin-left: 2px; }
+label.required::after { content: " *"; color: var(--danger); }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(0,51,102,0.1);
-        }
+input, select, textarea {
+    width: 100%; padding: 12px 16px; background: var(--bg-input); border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm); color: white; font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: all 0.2s ease;
+}
+input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15); background: #0f172a; }
+input.error, select.error { border-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+input[type="file"] { padding: 10px; cursor: pointer; }
+input[type="file"]::file-selector-button { background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 500; margin-right: 10px; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
 
-        input.error, select.error {
-            border-color: var(--accent-color);
-            background: #fff5f5;
-        }
+.btn {
+    border: none; cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 600;
+    padding: 12px 24px; border-radius: var(--radius-md); transition: all 0.3s ease;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem;
+}
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(20, 184, 166, 0.4); filter: brightness(1.1); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-save { background: linear-gradient(135deg, var(--success), #047857); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25); }
+.btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35); }
+.btn-accent { background: linear-gradient(135deg, var(--accent), #d97706); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
+.btn-accent:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-secondary { background: rgba(255,255,255,0.08); color: var(--text-muted); border: 1px solid var(--border-light); }
+.btn-secondary:hover { background: rgba(255,255,255,0.15); color: white; }
+.btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+.btn-danger:hover { background: var(--danger); color: white; }
+.btn-block { width: 100%; }
+.btn-lg { padding: 16px; font-size: 1.05rem; letter-spacing: 0.5px; }
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; }
 
-        /* --- Buttons --- */
-        .btn-group {
-            grid-column: span 2;
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
+.action-bar { display: flex; gap: 12px; justify-content: flex-end; margin-top: 25px; padding-top: 25px; border-top: 1px solid var(--border-light); flex-wrap: wrap; }
+@media (max-width: 768px) { .action-bar { flex-direction: column; } .action-bar .btn { width: 100%; } }
 
-        button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            transition: opacity 0.2s, background-color 0.2s;
-        }
+#toast-container { position: fixed; top: 90px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+    background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: white; padding: 14px 20px;
+    border-radius: var(--radius-md); border-left: 4px solid var(--primary);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px;
+    animation: slideInRight 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); min-width: 280px; max-width: 420px;
+}
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.info { border-left-color: var(--accent); }
+.toast i { font-size: 1.1rem; }
+.toast.success i { color: var(--success); }
+.toast.error i { color: var(--danger); }
+.toast.info i { color: var(--accent); }
+.toast.fade-out { animation: slideOutRight 0.3s forwards; }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOutRight { to { transform: translateX(100%); opacity: 0; } }
 
-        button:hover { opacity: 0.9; }
-        button:disabled { cursor: not-allowed; opacity: 0.6; }
+.loading-overlay {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+    z-index: 5000; display: none; justify-content: center; align-items: center; flex-direction: column;
+}
+.loading-overlay.active { display: flex; }
+.spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.loading-text { font-family: 'Poppins'; font-size: 1rem; color: var(--text-main); }
+.loading-subtext { font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; }
 
-        .btn-generate { background-color: var(--primary-color); }
-        .btn-generate:hover { background-color: #002244; }
+/* A4 PREVIEW */
+#a4-preview-wrap { background: #1e293b; padding: 30px 0; overflow-x: auto; }
+#pdf-content { display: flex; flex-direction: column; align-items: center; }
+.a4-page {
+    background: white; color: #333; width: 210mm; min-height: 297mm; padding: 20mm;
+    margin: 0 auto 30px auto; box-shadow: 0 0 40px rgba(0,0,0,0.5); position: relative; font-family: 'Segoe UI', sans-serif;
+}
+.page-break { page-break-after: always; page-break-before: always; }
+.doc-header { text-align: center; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 25px; }
+.doc-header h2 { font-size: 26px; color: #003366; text-transform: uppercase; letter-spacing: 1px; }
+.doc-header p { color: #666; font-size: 13px; }
+.profile-layout { display: flex; justify-content: space-between; gap: 30px; align-items: flex-start; }
+.data-column { flex: 1.5; }
+.photo-column { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.profile-photo-box { width: 180px; height: 220px; border: 2px solid #333; background-color: #f9f9f9; overflow: hidden; margin-bottom: 20px; }
+.profile-photo-box img { width: 100%; height: 100%; object-fit: cover; }
+.section-title-light { font-size: 14px; font-weight: bold; color: #003366; background: #eef2f5; padding: 4px 8px; margin-bottom: 8px; margin-top: 15px; border-left: 4px solid #d32f2f; text-transform: uppercase; }
+.data-row { display: flex; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 2px; }
+.data-label { width: 160px; font-weight: 600; color: #555; font-size: 13px; flex-shrink: 0; }
+.data-value { flex: 1; color: #000; font-size: 13px; font-weight: 500; }
+.attachment-container { margin-top: 20px; }
+.attachment-box { margin-bottom: 40px; border: 1px solid #ccc; padding: 10px; }
+.attachment-label { font-weight: bold; margin-bottom: 10px; background: #eee; padding: 5px; display: inline-block; color: #333; }
+.attachment-img { width: 100%; height: auto; max-height: 400px; object-fit: contain; border: 1px solid #ddd; }
+.doc-footer { position: absolute; bottom: 10mm; left: 20mm; right: 20mm; text-align: center; font-size: 11px; color: #777; border-top: 1px solid #eee; padding-top: 5px; }
 
-        .btn-reset { background-color: #7f8c8d; }
-        .btn-pdf { background-color: #27ae60; }
-        .btn-edit { background-color: #e67e22; }
+@media print {
+    body * { visibility: hidden; }
+    #pdf-content, #pdf-content * { visibility: visible; }
+    #pdf-content { position: absolute; left: 0; top: 0; width: 100%; }
+    .a4-page { box-shadow: none; margin: 0; }
+    .preview-controls, .app-nav { display: none !important; }
+}
 
-        /* --- Status / Alert Banner --- */
-        .alert {
-            display: none;
-            margin-bottom: 20px;
-            padding: 15px 20px;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-        .alert.show { display: block; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .alert-info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+/* LOCKER */
+.locker-toolbar {
+    display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center;
+}
+.locker-search {
+    flex: 1; min-width: 220px; padding: 12px 16px 12px 44px;
+    background: var(--bg-input); border: 1px solid var(--border-light);
+    border-radius: var(--radius-md); color: white; font-family: 'Inter'; font-size: 0.95rem;
+    position: relative; background-image: none;
+}
+.search-wrap { position: relative; flex: 1; min-width: 220px; }
+.search-wrap i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 
-        /* Spinner */
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;
-            margin-right: 8px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+.locker-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+.stat-pill {
+    background: var(--bg-card); border: 1px solid var(--border-light);
+    padding: 14px 20px; border-radius: var(--radius-md);
+    display: flex; align-items: center; gap: 12px; min-width: 160px;
+}
+.stat-pill i { font-size: 1.4rem; color: var(--primary); }
+.stat-pill .stat-val { font-size: 1.4rem; font-weight: 700; color: white; font-family: 'Poppins'; line-height: 1; }
+.stat-pill .stat-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; margin-top: 3px; }
 
-        /* --- Preview / Document View --- */
-        #preview-container {
-            display: none;
-            background: #ccc;
-            padding: 20px;
-        }
+.locker-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
+}
+.locker-card {
+    background: var(--bg-card); border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg); overflow: hidden;
+    transition: all 0.3s; backdrop-filter: blur(10px);
+    display: flex; flex-direction: column;
+}
+.locker-card:hover { transform: translateY(-4px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(20, 184, 166, 0.15); }
+.locker-card-header {
+    background: linear-gradient(135deg, rgba(20,184,166,0.15), rgba(15,118,110,0.05));
+    padding: 16px 20px; border-bottom: 1px solid var(--border-light);
+    display: flex; justify-content: space-between; align-items: center;
+}
+.locker-emp-id { font-family: 'Poppins'; font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+.locker-saved-date { font-size: 0.7rem; color: var(--text-muted); }
+.locker-card-body { padding: 18px 20px; display: flex; gap: 14px; flex: 1; }
+.locker-thumb {
+    width: 70px; height: 80px; border-radius: 8px; background: #1e293b;
+    overflow: hidden; flex-shrink: 0; border: 1px solid var(--border-light);
+}
+.locker-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.locker-thumb-empty { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.5rem; }
+.locker-info { flex: 1; min-width: 0; }
+.locker-name { font-family: 'Poppins'; font-weight: 600; font-size: 1rem; color: white; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.locker-desig { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+.locker-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; }
+.locker-meta i { width: 12px; color: var(--primary); margin-right: 4px; }
+.locker-card-actions {
+    padding: 12px 20px; border-top: 1px solid var(--border-light);
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+}
+.locker-card-actions .btn { padding: 8px; font-size: 0.75rem; }
+.locker-empty {
+    text-align: center; padding: 80px 20px; color: var(--text-muted);
+    background: var(--bg-card); border: 2px dashed var(--border-light); border-radius: var(--radius-lg);
+}
+.locker-empty i { font-size: 4rem; color: var(--border-light); margin-bottom: 20px; }
+.locker-empty h3 { font-family: 'Poppins'; color: var(--text-main); margin-bottom: 8px; font-weight: 500; }
 
-        /* A4 Page Common Styles */
-        .a4-page {
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 20mm;
-            margin: 0 auto 20px auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            position: relative;
-        }
-
-        /* Helper to force page break in PDF / print */
-        .page-break {
-            page-break-after: always;
-            page-break-before: always;
-        }
-
-        /* Document Header */
-        .doc-header {
-            text-align: center;
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-
-        .doc-header h2 {
-            font-size: 26px;
-            color: var(--primary-color);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* --- PAGE 1 LAYOUT (Left Data / Right Photo) --- */
-        .profile-layout {
-            display: flex;
-            justify-content: space-between;
-            gap: 30px;
-            align-items: flex-start;
-        }
-
-        .data-column {
-            flex: 1.5;
-        }
-
-        .photo-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .profile-photo-box {
-            width: 180px;
-            height: 220px;
-            border: 2px solid #333;
-            background-color: #f9f9f9;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .profile-photo-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--primary-color);
-            background: #eef2f5;
-            padding: 4px 8px;
-            margin-bottom: 8px;
-            margin-top: 15px;
-            border-left: 4px solid var(--accent-color);
-            text-transform: uppercase;
-        }
-
-        .data-row {
-            display: flex;
-            margin-bottom: 5px;
-            border-bottom: 1px dashed #eee;
-            padding-bottom: 2px;
-        }
-
-        .data-label {
-            width: 160px;
-            font-weight: 600;
-            color: #555;
-            font-size: 13px;
-            flex-shrink: 0;
-        }
-
-        .data-value {
-            flex: 1;
-            color: #000;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        /* --- PAGE 2 LAYOUT (ID Attachments) --- */
-        .attachment-container {
-            margin-top: 20px;
-        }
-
-        .attachment-box {
-            margin-bottom: 40px;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-
-        .attachment-label {
-            font-weight: bold;
-            margin-bottom: 10px;
-            background: #eee;
-            padding: 5px;
-            display: inline-block;
-        }
-
-        .attachment-img {
-            width: 100%;
-            height: auto;
-            max-height: 400px;
-            object-fit: contain;
-            border: 1px solid #ddd;
-        }
-
-        .doc-footer {
-            position: absolute;
-            bottom: 10mm;
-            left: 20mm;
-            right: 20mm;
-            text-align: center;
-            font-size: 11px;
-            color: #777;
-            border-top: 1px solid #eee;
-            padding-top: 5px;
-        }
-
-        /* --- Print Styles --- */
-        @media print {
-            body { background: white; padding: 0; }
-            .container, h1 { display: none; }
-            .preview-controls, .alert { display: none !important; }
-            #preview-container { display: block !important; background: none; padding: 0; }
-
-            .a4-page {
-                width: 100%;
-                margin: 0;
-                box-shadow: none;
-                border: none;
-                padding: 15mm;
-            }
-
-            .page-break {
-                page-break-after: always;
-            }
-
-            .doc-header h2, .section-title, .attachment-label {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .btn-group { display: none !important; }
-        }
-
-        @media (max-width: 768px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .full-width { grid-column: span 1; }
-            .profile-layout { flex-direction: column; }
-            .a4-page { width: 100%; padding: 15px; }
-            .btn-group { flex-direction: column; }
-            .btn-group button { width: 100%; }
-        }
-    </style>
+@media (max-width: 768px) {
+    .nav-buttons { width: 100%; justify-content: stretch; }
+    .nav-btn { flex: 1; justify-content: center; padding: 8px 12px; font-size: 0.8rem; }
+    .app-nav { flex-direction: column; height: auto; padding: 12px 5%; gap: 10px; }
+}
+</style>
 </head>
 <body>
 
-    <h1>EMPLOYEE MASTER DATA ENTRY</h1>
+<nav class="app-nav">
+    <div class="nav-brand"><i class="fa-solid fa-id-card"></i> HR Tools Pro</div>
+    <div class="nav-buttons">
+        <button class="nav-btn active" data-tab="employee" onclick="switchTab('employee', this)"><i class="fa-solid fa-user-tie"></i> Employee Data</button>
+        <button class="nav-btn" data-tab="locker" onclick="switchTab('locker', this)"><i class="fa-solid fa-vault"></i> Data Locker <span class="nav-badge" id="nav-locker-count">0</span></button>
+    </div>
+</nav>
 
-    <!-- INPUT FORM -->
-    <div class="container" id="form-container">
-        <div class="alert" id="status-alert"></div>
+<div id="toast-container"></div>
 
+<div class="loading-overlay" id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-text">Processing...</div>
+    <div class="loading-subtext" id="loading-subtext">Please wait</div>
+</div>
+
+<!-- ============ EMPLOYEE TAB ============ -->
+<section class="view-section active" id="tab-employee">
+    <h1 class="page-title">Employee Master Data Entry</h1>
+    <p class="page-subtitle">Fill in the employee details, upload documents. Save to local Locker or generate PDF & send to Google Sheet + Drive.</p>
+
+    <div class="form-card" id="form-container">
         <form id="dataForm" novalidate>
-            <div class="form-grid">
-                <!-- Personal Information -->
-                <div class="form-group full-width"><h3>1. Personal Details</h3></div>
-
-                <div class="form-group">
-                    <label>Employee ID *</label>
-                    <input type="text" id="in-emp-id" placeholder="e.g. EMP-001" required>
-                </div>
-                <div class="form-group">
-                    <label>Employee Name *</label>
-                    <input type="text" id="in-name" placeholder="Full Name" required>
-                </div>
-                <div class="form-group">
-                    <label>Designation *</label>
-                    <input type="text" id="in-designation" placeholder="Job Title" required>
-                </div>
-                <div class="form-group">
-                    <label>Father's Name</label>
-                    <input type="text" id="in-father" placeholder="Father's Name">
-                </div>
-                <div class="form-group">
-                    <label>Date of Birth *</label>
-                    <input type="date" id="in-dob" required>
-                </div>
-                <div class="form-group">
-                    <label>Gender *</label>
+            <h3 class="section-title"><i class="fa-solid fa-user"></i> Personal Details</h3>
+            <div class="input-grid">
+                <div class="col-6"><label class="required">Employee ID</label><input type="text" id="in-emp-id" placeholder="e.g. EMP-001" required></div>
+                <div class="col-6"><label class="required">Employee Name</label><input type="text" id="in-name" placeholder="Full Name" required></div>
+                <div class="col-6"><label class="required">Designation</label><input type="text" id="in-designation" placeholder="Job Title" required></div>
+                <div class="col-6"><label>Father's Name</label><input type="text" id="in-father" placeholder="Father's Name"></div>
+                <div class="col-6"><label class="required">Date of Birth</label><input type="date" id="in-dob" required></div>
+                <div class="col-6"><label class="required">Gender</label>
                     <select id="in-gender" required>
                         <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Blood Group</label>
+                <div class="col-6"><label>Blood Group</label>
                     <select id="in-blood">
                         <option value="">Select Blood Group</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
+                        <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option>
+                        <option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option>
                     </select>
                 </div>
+            </div>
 
-                <!-- Contact Information -->
-                <div class="form-group full-width" style="margin-top: 15px;"><h3>2. Contact Details</h3></div>
-
-                <div class="form-group">
-                    <label>Personal Number *</label>
-                    <input type="tel" id="in-phone1" placeholder="+91 XXXXX XXXXX" maxlength="15" required>
-                </div>
-                <div class="form-group">
-                    <label>Organization</label>
-                    <input type="text" id="in-org" placeholder="Company Name">
-                </div>
-                <div class="form-group">
-                    <label>Emergency Contact No</label>
-                    <input type="tel" id="in-phone2" placeholder="Emergency Number" maxlength="15">
-                </div>
-                <div class="form-group">
-                    <label>Relation</label>
+            <h3 class="section-title" style="margin-top: 30px;"><i class="fa-solid fa-phone"></i> Contact Details</h3>
+            <div class="input-grid">
+                <div class="col-6"><label class="required">Personal Number</label><input type="tel" id="in-phone1" placeholder="+91 XXXXX XXXXX" maxlength="15" required></div>
+                <div class="col-6"><label>Organization</label><input type="text" id="in-org" placeholder="Company Name"></div>
+                <div class="col-6"><label>Emergency Contact No</label><input type="tel" id="in-phone2" placeholder="Emergency Number" maxlength="15"></div>
+                <div class="col-6"><label>Relation</label>
                     <select id="in-relation">
                         <option value="">Select Relation</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Son">Son</option>
-                        <option value="Daughter">Daughter</option>
+                        <option value="Father">Father</option><option value="Mother">Mother</option><option value="Spouse">Spouse</option>
+                        <option value="Brother">Brother</option><option value="Sister">Sister</option><option value="Son">Son</option><option value="Daughter">Daughter</option>
                     </select>
                 </div>
+            </div>
 
-                <!-- Official Information -->
-                <div class="form-group full-width" style="margin-top: 15px;"><h3>3. Official Details</h3></div>
-
-                <div class="form-group">
-                    <label>Date of Joining *</label>
-                    <input type="date" id="in-doj" required>
-                </div>
-                <div class="form-group">
-                    <label>UAN Number</label>
-                    <input type="text" id="in-uan" placeholder="Universal Account Number">
-                </div>
-
-                <div class="form-group full-width">
-                    <label>Mode of Transport</label>
-                    <input type="text" id="in-transport" placeholder="e.g. Bus, Own Vehicle, Walk">
-                </div>
-
-                <div class="form-group full-width">
-                    <label>Working Status *</label>
+            <h3 class="section-title" style="margin-top: 30px;"><i class="fa-solid fa-briefcase"></i> Official Details</h3>
+            <div class="input-grid">
+                <div class="col-6"><label class="required">Date of Joining</label><input type="date" id="in-doj" required></div>
+                <div class="col-6"><label>UAN Number</label><input type="text" id="in-uan" placeholder="Universal Account Number"></div>
+                <div class="col-12"><label>Mode of Transport</label><input type="text" id="in-transport" placeholder="e.g. Bus, Own Vehicle, Walk"></div>
+                <div class="col-12"><label class="required">Working Status</label>
                     <select id="in-working-state" required>
                         <option value="">Select Working Status</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                        <option value="Active">Active</option><option value="Inactive">Inactive</option>
                     </select>
                 </div>
+            </div>
 
-                <!-- ID Proofs -->
-                <div class="form-group full-width" style="margin-top: 15px;"><h3>4. Identification</h3></div>
+            <h3 class="section-title" style="margin-top: 30px;"><i class="fa-solid fa-id-badge"></i> Identification</h3>
+            <div class="input-grid">
+                <div class="col-6"><label>Aadhaar Number</label><input type="text" id="in-aadhaar" maxlength="14" placeholder="1234 5678 9012"></div>
+                <div class="col-6"><label>PAN Number</label><input type="text" id="in-pan" maxlength="10" placeholder="ABCDE1234F" style="text-transform:uppercase;"></div>
+                <div class="col-6"><label>Upload Aadhaar Card</label><input type="file" id="in-aadhaar-photo" accept="image/*"></div>
+                <div class="col-6"><label>Upload PAN Card</label><input type="file" id="in-pan-photo" accept="image/*"></div>
+                <div class="col-12"><label class="required">Upload Employee Photo</label><input type="file" id="in-emp-photo" accept="image/*" required></div>
+            </div>
 
-                <div class="form-group">
-                    <label>Aadhaar Number</label>
-                    <input type="text" id="in-aadhaar" maxlength="14" placeholder="1234 5678 9012">
-                </div>
-                <div class="form-group">
-                    <label>PAN Number</label>
-                    <input type="text" id="in-pan" maxlength="10" placeholder="ABCDE1234F" style="text-transform:uppercase;">
-                </div>
-
-                <div class="form-group">
-                    <label>Upload Aadhaar Card</label>
-                    <input type="file" id="in-aadhaar-photo" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label>Upload PAN Card</label>
-                    <input type="file" id="in-pan-photo" accept="image/*">
-                </div>
-
-                <!-- Employee Photo -->
-                <div class="form-group full-width">
-                    <label>Upload Employee Photo *</label>
-                    <input type="file" id="in-emp-photo" accept="image/*" required>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="btn-group full-width">
-                    <button type="button" class="btn-reset" onclick="resetAll()">Reset</button>
-                    <button type="submit" class="btn-generate" id="btn-generate">Generate Profile Record</button>
-                </div>
+            <div class="action-bar">
+                <button type="button" class="btn btn-secondary" onclick="resetAll()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                <button type="button" class="btn btn-accent btn-lg" onclick="saveToLocker()"><i class="fa-solid fa-bookmark"></i> Save to Locker</button>
+                <button type="submit" class="btn btn-primary btn-lg" id="btn-generate"><i class="fa-solid fa-file-circle-plus"></i> Generate Profile Record</button>
             </div>
         </form>
     </div>
 
-    <!-- PREVIEW CONTAINER -->
-    <div id="preview-container">
-        <div class="preview-controls" style="text-align: center; margin-bottom: 20px; background: #fff; padding: 10px; border-bottom: 1px solid #ccc;">
-            <button type="button" class="btn-edit" onclick="goBack()">Edit Details</button>
-            <button type="button" class="btn-pdf" onclick="downloadPDF()">Download / Print PDF</button>
+    <!-- A4 PREVIEW -->
+    <div id="preview-container" style="display:none;">
+        <div class="action-bar" style="position:sticky;top:80px;background:var(--bg-card);padding:12px 20px;border-radius:var(--radius-md);margin-bottom:20px;backdrop-filter:blur(10px);z-index:50;border:1px solid var(--border-light);">
+            <button class="btn btn-secondary" onclick="goBack()"><i class="fa-solid fa-arrow-left"></i> Edit Details</button>
+            <button class="btn btn-save" onclick="downloadPDF()"><i class="fa-solid fa-print"></i> Download / Print PDF</button>
         </div>
-
-        <div class="alert" id="preview-status-alert" style="max-width:900px;margin:0 auto 20px;"></div>
-
-        <!-- ============================================================
-             PDF CONTENT WRAPPER
-             html2pdf renders THIS element to PDF. Everything inside
-             will appear in the Drive PDF exactly as styled here.
-             ============================================================ -->
-        <div id="pdf-content">
-
-            <!-- ================= PAGE 1: PROFILE ================= -->
-            <div class="a4-page page-1">
-                <div class="doc-header">
-                    <h2>Employee Profile Record</h2>
-                    <p>Official Master Data &amp; Verification Document</p>
-                </div>
-
-                <div class="profile-layout">
-                    <div class="data-column">
-
-                        <div class="section-title">1. Personal Information</div>
-                        <div class="data-row">
-                            <span class="data-label">Employee ID:</span>
-                            <span class="data-value" id="out-emp-id">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Name:</span>
-                            <span class="data-value" id="out-name">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Father's Name:</span>
-                            <span class="data-value" id="out-father">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Date of Birth:</span>
-                            <span class="data-value" id="out-dob">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Gender:</span>
-                            <span class="data-value" id="out-gender">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Blood Group:</span>
-                            <span class="data-value" id="out-blood">-</span>
-                        </div>
-
-                        <div class="section-title">2. Contact Details</div>
-                        <div class="data-row">
-                            <span class="data-label">Organization:</span>
-                            <span class="data-value" id="out-org">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Personal No:</span>
-                            <span class="data-value" id="out-phone1">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Emergency No:</span>
-                            <span class="data-value"><span id="out-phone2">-</span> (<span id="out-relation">-</span>)</span>
-                        </div>
-
-                        <div class="section-title">3. Employment Details</div>
-                        <div class="data-row">
-                            <span class="data-label">Designation:</span>
-                            <span class="data-value" id="out-designation">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Date of Joining:</span>
-                            <span class="data-value" id="out-doj">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">UAN Number:</span>
-                            <span class="data-value" id="out-uan">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Transport Mode:</span>
-                            <span class="data-value" id="out-transport">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">Working Status:</span>
-                            <span class="data-value" id="out-working-state">-</span>
-                        </div>
-
-                        <div class="section-title">4. Identification Numbers</div>
-                        <div class="data-row">
-                            <span class="data-label">Aadhaar Number:</span>
-                            <span class="data-value" id="out-aadhaar">-</span>
-                        </div>
-                        <div class="data-row">
-                            <span class="data-label">PAN Number:</span>
-                            <span class="data-value" id="out-pan">-</span>
-                        </div>
-
+        <div id="a4-preview-wrap">
+            <div id="pdf-content">
+                <div class="a4-page page-1">
+                    <div class="doc-header">
+                        <h2>Employee Profile Record</h2>
+                        <p>Official Master Data &amp; Verification Document</p>
                     </div>
+                    <div class="profile-layout">
+                        <div class="data-column">
+                            <div class="section-title-light">1. Personal Information</div>
+                            <div class="data-row"><span class="data-label">Employee ID:</span><span class="data-value" id="out-emp-id">-</span></div>
+                            <div class="data-row"><span class="data-label">Name:</span><span class="data-value" id="out-name">-</span></div>
+                            <div class="data-row"><span class="data-label">Father's Name:</span><span class="data-value" id="out-father">-</span></div>
+                            <div class="data-row"><span class="data-label">Date of Birth:</span><span class="data-value" id="out-dob">-</span></div>
+                            <div class="data-row"><span class="data-label">Gender:</span><span class="data-value" id="out-gender">-</span></div>
+                            <div class="data-row"><span class="data-label">Blood Group:</span><span class="data-value" id="out-blood">-</span></div>
 
-                    <div class="photo-column">
-                        <div class="profile-photo-box">
-                            <img id="out-emp-photo" src="https://via.placeholder.com/180x220?text=No+Photo" alt="Employee Photo">
+                            <div class="section-title-light">2. Contact Details</div>
+                            <div class="data-row"><span class="data-label">Organization:</span><span class="data-value" id="out-org">-</span></div>
+                            <div class="data-row"><span class="data-label">Personal No:</span><span class="data-value" id="out-phone1">-</span></div>
+                            <div class="data-row"><span class="data-label">Emergency No:</span><span class="data-value"><span id="out-phone2">-</span> (<span id="out-relation">-</span>)</span></div>
+
+                            <div class="section-title-light">3. Employment Details</div>
+                            <div class="data-row"><span class="data-label">Designation:</span><span class="data-value" id="out-designation">-</span></div>
+                            <div class="data-row"><span class="data-label">Date of Joining:</span><span class="data-value" id="out-doj">-</span></div>
+                            <div class="data-row"><span class="data-label">UAN Number:</span><span class="data-value" id="out-uan">-</span></div>
+                            <div class="data-row"><span class="data-label">Transport Mode:</span><span class="data-value" id="out-transport">-</span></div>
+                            <div class="data-row"><span class="data-label">Working Status:</span><span class="data-value" id="out-working-state">-</span></div>
+
+                            <div class="section-title-light">4. Identification Numbers</div>
+                            <div class="data-row"><span class="data-label">Aadhaar Number:</span><span class="data-value" id="out-aadhaar">-</span></div>
+                            <div class="data-row"><span class="data-label">PAN Number:</span><span class="data-value" id="out-pan">-</span></div>
                         </div>
-
-                        <div style="width: 100%; text-align: right; margin-top: 20px;">
-                            <div style="font-weight: bold;">Authorized Signature</div>
-                            <div style="border-bottom: 1px solid #333; width: 100%; margin-top: 5px;"></div>
-                            <div style="font-size: 11px; color: #555; margin-top: 5px;">HR Manager</div>
+                        <div class="photo-column">
+                            <div class="profile-photo-box"><img id="out-emp-photo" src="https://via.placeholder.com/180x220?text=No+Photo" alt="Employee Photo"></div>
+                            <div style="width: 100%; text-align: right; margin-top: 20px;">
+                                <div style="font-weight: bold; color:#333;">Authorized Signature</div>
+                                <div style="border-bottom: 1px solid #333; width: 100%; margin-top: 5px;"></div>
+                                <div style="font-size: 11px; color: #555; margin-top: 5px;">HR Manager</div>
+                            </div>
                         </div>
                     </div>
+                    <div class="doc-footer">This is a system-generated record. For verification, please contact the HR Department.<br>Generated on: <span id="out-timestamp"></span></div>
                 </div>
-
-                <div class="doc-footer">
-                    This is a system-generated record. For verification, please contact the HR Department.<br>
-                    Generated on: <span id="out-timestamp"></span>
+                <div class="a4-page page-break page-2">
+                    <div class="doc-header">
+                        <h2>Identity Document Attachments</h2>
+                        <p>Supporting Proofs for Employee ID: <span id="out-emp-id-2">-</span></p>
+                    </div>
+                    <div class="attachment-container">
+                        <div class="attachment-box">
+                            <div class="attachment-label">Aadhaar Card</div>
+                            <img id="out-aadhaar-photo" class="attachment-img" src="https://via.placeholder.com/600x400?text=No+Aadhaar+Upload" alt="Aadhaar Card">
+                        </div>
+                        <div class="attachment-box">
+                            <div class="attachment-label">PAN Card</div>
+                            <img id="out-pan-photo" class="attachment-img" src="https://via.placeholder.com/600x400?text=No+PAN+Upload" alt="PAN Card">
+                        </div>
+                    </div>
+                    <div class="doc-footer">Page 2 of 2 - Confidential Document</div>
                 </div>
             </div>
+        </div>
+    </div>
+</section>
 
-            <!-- ================= PAGE 2: ATTACHMENTS ================= -->
-            <div class="a4-page page-break page-2">
-                <div class="doc-header">
-                    <h2>Identity Document Attachments</h2>
-                    <p>Supporting Proofs for Employee ID: <span id="out-emp-id-2">-</span></p>
-                </div>
+<!-- ============ LOCKER TAB ============ -->
+<section class="view-section" id="tab-locker">
+    <h1 class="page-title">Data Locker</h1>
+    <p class="page-subtitle">All employee records saved locally in your browser. View, download as PDF, or delete anytime.</p>
 
-                <div class="attachment-container">
-                    <div class="attachment-box">
-                        <div class="attachment-label">Aadhaar Card</div>
-                        <img id="out-aadhaar-photo" class="attachment-img" src="https://via.placeholder.com/600x400?text=No+Aadhaar+Upload" alt="Aadhaar Card">
+    <div class="locker-stats">
+        <div class="stat-pill"><i class="fa-solid fa-database"></i><div><div class="stat-val" id="locker-count">0</div><div class="stat-lbl">Saved Records</div></div></div>
+        <div class="stat-pill"><i class="fa-solid fa-hard-drive"></i><div><div class="stat-val" id="locker-size">0 KB</div><div class="stat-lbl">Storage Used</div></div></div>
+        <div class="stat-pill"><i class="fa-solid fa-calendar-check"></i><div><div class="stat-val" id="locker-recent">-</div><div class="stat-lbl">Last Saved</div></div></div>
+    </div>
+
+    <div class="locker-toolbar">
+        <div class="search-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" class="locker-search" id="locker-search" placeholder="Search by ID, name, or designation..." oninput="renderLocker()">
+        </div>
+        <button class="btn btn-secondary" onclick="switchTab('employee', document.querySelector('.nav-btn[data-tab=employee]'))"><i class="fa-solid fa-plus"></i> New Entry</button>
+        <button class="btn btn-danger" onclick="clearAllLocker()"><i class="fa-solid fa-trash"></i> Clear All</button>
+    </div>
+
+    <div class="locker-grid" id="locker-grid">
+        <!-- Cards injected here -->
+    </div>
+</section>
+
+<script>
+/* ============================================================
+ * CONFIGURATION
+ * ============================================================ */
+const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG82bx8rE-Brq1Hn3xKWHhQmLce5rAEWwHBs-604i_J_qtJu3G0J6oqg592Uwois4x/exec";
+const PDF_SCRIPT_URL   = "https://script.google.com/macros/s/AKfycbwN3vgw6GMEvrNe3qCNEPe8F0b1VLRglwEklBJ7Y-GQxQORmrA1tbt0F32-xFz4aZo/exec";
+const LOCKER_KEY = 'employeeLocker';
+
+/* ============================================================
+ * TAB SWITCHING
+ * ============================================================ */
+function switchTab(tabName, btn) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    else document.querySelector(`.nav-btn[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+    if (tabName === 'locker') renderLocker();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+ * TOAST + LOADING
+ * ============================================================ */
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+    toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i><div>${message}</div>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); }, duration);
+}
+function showLoading(text, subtext) {
+    document.getElementById('loading-text').textContent = text;
+    document.getElementById('loading-subtext').textContent = subtext || 'Please wait';
+    document.getElementById('loading-overlay').classList.add('active');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
+
+/* ============================================================
+ * EMPLOYEE FORM
+ * ============================================================ */
+const form = document.getElementById('dataForm');
+const formContainer = document.getElementById('form-container');
+const previewContainer = document.getElementById('preview-container');
+const btnGenerate = document.getElementById('btn-generate');
+
+const fields = [
+    { in: 'in-emp-id', out: 'out-emp-id' }, { in: 'in-name', out: 'out-name' },
+    { in: 'in-designation', out: 'out-designation' }, { in: 'in-father', out: 'out-father' },
+    { in: 'in-gender', out: 'out-gender' }, { in: 'in-blood', out: 'out-blood' },
+    { in: 'in-org', out: 'out-org' }, { in: 'in-phone1', out: 'out-phone1' },
+    { in: 'in-phone2', out: 'out-phone2' }, { in: 'in-relation', out: 'out-relation' },
+    { in: 'in-doj', out: 'out-doj' }, { in: 'in-uan', out: 'out-uan' },
+    { in: 'in-transport', out: 'out-transport' }, { in: 'in-working-state', out: 'out-working-state' }
+];
+const requiredFields = ['in-emp-id','in-name','in-designation','in-dob','in-gender','in-phone1','in-doj','in-working-state','in-emp-photo'];
+
+form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!validateForm()) { showToast('Please fill in all required (*) fields correctly.', 'error'); return; }
+    btnGenerate.disabled = true;
+    fillTextFields();
+    document.getElementById('out-emp-id-2').textContent = document.getElementById('in-emp-id').value.trim();
+    document.getElementById('out-timestamp').textContent = new Date().toLocaleString();
+    formContainer.style.display = 'none';
+    previewContainer.style.display = 'block';
+    window.scrollTo(0, 0);
+    try {
+        showLoading('Loading images...', 'Reading uploaded files');
+        await Promise.all([
+            loadImageIntoPreview('in-emp-photo', 'out-emp-photo', 'https://via.placeholder.com/180x220?text=No+Photo'),
+            loadImageIntoPreview('in-aadhaar-photo', 'out-aadhaar-photo', 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload'),
+            loadImageIntoPreview('in-pan-photo', 'out-pan-photo', 'https://via.placeholder.com/600x400?text=No+PAN+Upload')
+        ]);
+        await sleep(300);
+        showLoading('Generating PDF...', 'Rendering A4 document');
+        const pdfBase64 = await renderPreviewToPdfBase64();
+        const sheetPayload = buildSheetPayload();
+        const pdfPayload = { empId: sheetPayload.empId, name: sheetPayload.name, pdfBase64: pdfBase64 };
+        showLoading('Saving to Sheet & Drive...', 'Uploading to Google services');
+        await Promise.all([
+            fetch(SHEET_SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(sheetPayload) }),
+            fetch(PDF_SCRIPT_URL,   { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(pdfPayload) })
+        ]);
+        hideLoading();
+        const fileName = sanitizeFileName(sheetPayload.empId) + '_' + sanitizeFileName(sheetPayload.name) + '.pdf';
+        showToast('<strong>Success!</strong><br>Record saved to Sheet & PDF stored in Drive as <code>' + fileName + '</code>', 'success', 6000);
+    } catch (err) {
+        console.error(err);
+        hideLoading();
+        showToast('<strong>Error:</strong> ' + (err.message || err.toString()), 'error', 6000);
+    } finally {
+        btnGenerate.disabled = false;
+    }
+});
+
+function validateForm() {
+    let isValid = true;
+    requiredFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el.value || (el.type === 'file' && !el.files.length)) { el.classList.add('error'); isValid = false; }
+        else el.classList.remove('error');
+    });
+    const aadhaarEl = document.getElementById('in-aadhaar');
+    if (aadhaarEl.value && aadhaarEl.value.replace(/\D/g, '').length !== 12) { aadhaarEl.classList.add('error'); isValid = false; }
+    const panEl = document.getElementById('in-pan');
+    if (panEl.value && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panEl.value.toUpperCase())) { panEl.classList.add('error'); isValid = false; }
+    const phone1 = document.getElementById('in-phone1').value.replace(/\D/g, '');
+    if (phone1.length < 10 || phone1.length > 15) { document.getElementById('in-phone1').classList.add('error'); isValid = false; }
+    return isValid;
+}
+
+function fillTextFields() {
+    fields.forEach(field => { document.getElementById(field.out).textContent = document.getElementById(field.in).value || '-'; });
+    document.getElementById('out-dob').textContent = formatDate(document.getElementById('in-dob').value);
+    document.getElementById('out-doj').textContent = formatDate(document.getElementById('in-doj').value);
+    const aadhaar = document.getElementById('in-aadhaar').value.replace(/\D/g, '');
+    document.getElementById('out-aadhaar').textContent = aadhaar ? formatID(aadhaar, 4) : '-';
+    document.getElementById('out-pan').textContent = document.getElementById('in-pan').value.toUpperCase() || '-';
+}
+
+function loadImageIntoPreview(inputId, outputId, fallbackSrc) {
+    return new Promise((resolve) => {
+        const input = document.getElementById(inputId);
+        const img = document.getElementById(outputId);
+        const finalize = (src) => { img.onload = () => resolve(); img.onerror = () => resolve(); img.src = src; };
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => finalize(e.target.result);
+            reader.onerror = () => finalize(fallbackSrc);
+            reader.readAsDataURL(input.files[0]);
+        } else finalize(fallbackSrc);
+    });
+}
+
+function renderPreviewToPdfBase64() {
+    return new Promise((resolve, reject) => {
+        const element = document.getElementById('pdf-content');
+        const opt = {
+            margin: 0,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'], before: '.page-2' }
+        };
+        html2pdf().set(opt).from(element).toPdf().output('blob')
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            }).catch(reject);
+    });
+}
+
+function buildSheetPayload() {
+    return {
+        empId: document.getElementById('in-emp-id').value.trim(),
+        name: document.getElementById('in-name').value.trim(),
+        designation: document.getElementById('in-designation').value.trim(),
+        father: document.getElementById('in-father').value.trim(),
+        dob: document.getElementById('in-dob').value,
+        gender: document.getElementById('in-gender').value,
+        blood: document.getElementById('in-blood').value,
+        mobile: document.getElementById('in-phone1').value.trim(),
+        organization: document.getElementById('in-org').value.trim(),
+        emergencyContact: document.getElementById('in-phone2').value.trim(),
+        relation: document.getElementById('in-relation').value,
+        doj: document.getElementById('in-doj').value,
+        uan: document.getElementById('in-uan').value.trim(),
+        transport: document.getElementById('in-transport').value.trim(),
+        workingStatus: document.getElementById('in-working-state').value,
+        aadhaar: document.getElementById('in-aadhaar').value.replace(/\D/g, ''),
+        pan: document.getElementById('in-pan').value.toUpperCase().trim()
+    };
+}
+
+function goBack() { previewContainer.style.display = 'none'; formContainer.style.display = 'block'; window.scrollTo(0, 0); }
+function resetAll() { if (confirm('Clear all data?')) { form.reset(); document.querySelectorAll('.error').forEach(el => el.classList.remove('error')); } }
+function downloadPDF() { window.print(); }
+function formatDate(s) { if (!s) return '-'; const [y, m, d] = s.split('-'); return d + '/' + m + '/' + y; }
+function formatID(str, i) { if (!str) return '-'; return str.match(new RegExp('.{1,' + i + '}', 'g')).join(' '); }
+function sanitizeFileName(name) { return String(name || '').replace(/[^a-zA-Z0-9]/g, '_'); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escapeHtml(str) { return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* ============================================================
+ * LOCKER (local storage) — save / view / download / delete
+ * ============================================================ */
+
+// Save current form data + images as base64 into localStorage
+async function saveToLocker() {
+    if (!validateForm()) {
+        showToast('Please fill in all required (*) fields before saving to locker.', 'error');
+        return;
+    }
+    showLoading('Saving to Locker...', 'Encoding images');
+    try {
+        const empPhoto = await fileToBase64('in-emp-photo');
+        const aadhaarPhoto = await fileToBase64('in-aadhaar-photo');
+        const panPhoto = await fileToBase64('in-pan-photo');
+
+        const record = {
+            id: Date.now(),
+            savedAt: new Date().toISOString(),
+            empId: document.getElementById('in-emp-id').value.trim(),
+            name: document.getElementById('in-name').value.trim(),
+            designation: document.getElementById('in-designation').value.trim(),
+            father: document.getElementById('in-father').value.trim(),
+            dob: document.getElementById('in-dob').value,
+            gender: document.getElementById('in-gender').value,
+            blood: document.getElementById('in-blood').value,
+            mobile: document.getElementById('in-phone1').value.trim(),
+            organization: document.getElementById('in-org').value.trim(),
+            emergencyContact: document.getElementById('in-phone2').value.trim(),
+            relation: document.getElementById('in-relation').value,
+            doj: document.getElementById('in-doj').value,
+            uan: document.getElementById('in-uan').value.trim(),
+            transport: document.getElementById('in-transport').value.trim(),
+            workingStatus: document.getElementById('in-working-state').value,
+            aadhaar: document.getElementById('in-aadhaar').value.replace(/\D/g, ''),
+            pan: document.getElementById('in-pan').value.toUpperCase().trim(),
+            empPhoto: empPhoto,
+            aadhaarPhoto: aadhaarPhoto,
+            panPhoto: panPhoto
+        };
+
+        const list = getLocker();
+        list.unshift(record);
+        // Cap at 50 records to stay within localStorage quota (~5MB)
+        if (list.length > 50) list.length = 50;
+        try {
+            localStorage.setItem(LOCKER_KEY, JSON.stringify(list));
+        } catch (quotaErr) {
+            hideLoading();
+            showToast('Storage full. Delete old records to save new ones.', 'error', 5000);
+            return;
+        }
+        hideLoading();
+        updateLockerStats();
+        showToast('<strong>Saved to Locker!</strong><br>' + record.empId + ' — ' + record.name, 'success', 3500);
+        // Switch to locker tab to show the new entry
+        switchTab('locker', document.querySelector('.nav-btn[data-tab="locker"]'));
+    } catch (err) {
+        hideLoading();
+        showToast('Error saving to locker: ' + err.message, 'error');
+    }
+}
+
+function fileToBase64(inputId) {
+    return new Promise((resolve) => {
+        const input = document.getElementById(inputId);
+        if (!input.files || !input.files[0]) { resolve(''); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);  // full data URL
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(input.files[0]);
+    });
+}
+
+function getLocker() {
+    try { return JSON.parse(localStorage.getItem(LOCKER_KEY)) || []; }
+    catch { return []; }
+}
+
+function renderLocker() {
+    const list = getLocker();
+    const search = (document.getElementById('locker-search').value || '').toLowerCase().trim();
+    const filtered = search
+        ? list.filter(r =>
+            (r.empId || '').toLowerCase().includes(search) ||
+            (r.name || '').toLowerCase().includes(search) ||
+            (r.designation || '').toLowerCase().includes(search))
+        : list;
+
+    const grid = document.getElementById('locker-grid');
+    updateLockerStats();
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="locker-empty" style="grid-column: 1 / -1;">
+                <i class="fa-solid fa-vault"></i>
+                <h3>${search ? 'No matching records' : 'Locker is Empty'}</h3>
+                <p>${search ? 'Try a different search term.' : 'Fill the employee form and click "Save to Locker" to add records here.'}</p>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(r => {
+        const thumb = r.empPhoto
+            ? `<img src="${r.empPhoto}" alt="">`
+            : `<div class="locker-thumb-empty"><i class="fa-solid fa-user"></i></div>`;
+        const saved = new Date(r.savedAt).toLocaleString();
+        return `
+        <div class="locker-card">
+            <div class="locker-card-header">
+                <span class="locker-emp-id">${escapeHtml(r.empId)}</span>
+                <span class="locker-saved-date"><i class="fa-regular fa-clock"></i> ${saved}</span>
+            </div>
+            <div class="locker-card-body">
+                <div class="locker-thumb">${thumb}</div>
+                <div class="locker-info">
+                    <div class="locker-name">${escapeHtml(r.name)}</div>
+                    <div class="locker-desig">${escapeHtml(r.designation || '-')}</div>
+                    <div class="locker-meta">
+                        <span><i class="fa-solid fa-building"></i>${escapeHtml(r.organization || '-')}</span>
+                        <span><i class="fa-solid fa-phone"></i>${escapeHtml(r.mobile || '-')}</span>
+                        <span><i class="fa-solid fa-circle-check" style="color:${r.workingStatus==='Active'?'var(--success)':'var(--text-muted)'}"></i>${escapeHtml(r.workingStatus || '-')}</span>
                     </div>
-
-                    <div class="attachment-box">
-                        <div class="attachment-label">PAN Card</div>
-                        <img id="out-pan-photo" class="attachment-img" src="https://via.placeholder.com/600x400?text=No+PAN+Upload" alt="PAN Card">
-                    </div>
-                </div>
-
-                <div class="doc-footer">
-                    Page 2 of 2 - Confidential Document
                 </div>
             </div>
+            <div class="locker-card-actions">
+                <button class="btn btn-secondary" onclick="viewLockerRecord(${r.id})"><i class="fa-solid fa-eye"></i> View</button>
+                <button class="btn btn-save" onclick="downloadLockerPDF(${r.id})"><i class="fa-solid fa-download"></i> PDF</button>
+                <button class="btn btn-danger" onclick="deleteLockerRecord(${r.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+            </div>
+        </div>`;
+    }).join('');
+}
 
-        </div><!-- /#pdf-content -->
+function updateLockerStats() {
+    const list = getLocker();
+    document.getElementById('locker-count').textContent = list.length;
+    document.getElementById('nav-locker-count').textContent = list.length;
+    // Storage size
+    const data = localStorage.getItem(LOCKER_KEY) || '';
+    const bytes = new Blob([data]).size;
+    const kb = (bytes / 1024).toFixed(1);
+    document.getElementById('locker-size').textContent = kb + ' KB';
+    // Last saved
+    if (list.length > 0) {
+        const last = new Date(list[0].savedAt);
+        const today = new Date();
+        const diff = Math.floor((today - last) / 86400000);
+        let label;
+        if (diff === 0) label = 'Today';
+        else if (diff === 1) label = 'Yesterday';
+        else label = diff + 'd ago';
+        document.getElementById('locker-recent').textContent = label;
+    } else {
+        document.getElementById('locker-recent').textContent = '-';
+    }
+}
 
-    </div><!-- /#preview-container -->
+// View a saved record — populates A4 preview and switches view
+function viewLockerRecord(id) {
+    const list = getLocker();
+    const r = list.find(x => x.id === id);
+    if (!r) { showToast('Record not found.', 'error'); return; }
 
-    <script>
-        /* ============================================================
-         * CONFIGURATION  -- TWO APPS SCRIPT URLs
-         *
-         * 1) SHEET_SCRIPT_URL  -> Your existing script that saves
-         *                         employee data to the Google Sheet.
-         *
-         * 2) PDF_SCRIPT_URL    -> Your NEW script that uploads the
-         *                         generated PDF to Google Drive.
-         *
-         * Both URLs end with /exec
-         * ============================================================ */
+    // Fill text fields
+    document.getElementById('out-emp-id').textContent = r.empId || '-';
+    document.getElementById('out-name').textContent = r.name || '-';
+    document.getElementById('out-father').textContent = r.father || '-';
+    document.getElementById('out-dob').textContent = formatDate(r.dob);
+    document.getElementById('out-gender').textContent = r.gender || '-';
+    document.getElementById('out-blood').textContent = r.blood || '-';
+    document.getElementById('out-org').textContent = r.organization || '-';
+    document.getElementById('out-phone1').textContent = r.mobile || '-';
+    document.getElementById('out-phone2').textContent = r.emergencyContact || '-';
+    document.getElementById('out-relation').textContent = r.relation || '-';
+    document.getElementById('out-designation').textContent = r.designation || '-';
+    document.getElementById('out-doj').textContent = formatDate(r.doj);
+    document.getElementById('out-uan').textContent = r.uan || '-';
+    document.getElementById('out-transport').textContent = r.transport || '-';
+    document.getElementById('out-working-state').textContent = r.workingStatus || '-';
+    document.getElementById('out-aadhaar').textContent = r.aadhaar ? formatID(r.aadhaar, 4) : '-';
+    document.getElementById('out-pan').textContent = r.pan || '-';
+    document.getElementById('out-emp-id-2').textContent = r.empId || '-';
+    document.getElementById('out-timestamp').textContent = new Date(r.savedAt).toLocaleString();
 
-        // 1) Script that saves employee data to Google Sheet (already working)
-        const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG82bx8rE-Brq1Hn3xKWHhQmLce5rAEWwHBs-604i_J_qtJu3G0J6oqg592Uwois4x/exec";
+    // Images
+    document.getElementById('out-emp-photo').src = r.empPhoto || 'https://via.placeholder.com/180x220?text=No+Photo';
+    document.getElementById('out-aadhaar-photo').src = r.aadhaarPhoto || 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload';
+    document.getElementById('out-pan-photo').src = r.panPhoto || 'https://via.placeholder.com/600x400?text=No+PAN+Upload';
 
-        // 2) Script that uploads PDF to Google Drive (you just deployed this)
-        const PDF_SCRIPT_URL   = "https://script.google.com/macros/s/AKfycbwN3vgw6GMEvrNe3qCNEPe8F0b1VLRglwEklBJ7Y-GQxQORmrA1tbt0F32-xFz4aZo/exec";
+    // Show preview, hide form
+    document.getElementById('tab-locker').classList.remove('active');
+    document.getElementById('tab-employee').classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nav-btn[data-tab="employee"]').classList.add('active');
+    formContainer.style.display = 'none';
+    previewContainer.style.display = 'block';
+    window.scrollTo(0, 0);
+    showToast('Viewing saved record: ' + r.empId, 'info', 2500);
+}
 
-        const form = document.getElementById('dataForm');
-        const formContainer = document.getElementById('form-container');
-        const previewContainer = document.getElementById('preview-container');
-        const btnGenerate = document.getElementById('btn-generate');
+// Download a saved record as PDF directly (no preview needed)
+async function downloadLockerPDF(id) {
+    const list = getLocker();
+    const r = list.find(x => x.id === id);
+    if (!r) { showToast('Record not found.', 'error'); return; }
 
-        const fields = [
-            { in: 'in-emp-id',        out: 'out-emp-id' },
-            { in: 'in-name',          out: 'out-name' },
-            { in: 'in-designation',   out: 'out-designation' },
-            { in: 'in-father',        out: 'out-father' },
-            { in: 'in-gender',        out: 'out-gender' },
-            { in: 'in-blood',         out: 'out-blood' },
-            { in: 'in-org',           out: 'out-org' },
-            { in: 'in-phone1',        out: 'out-phone1' },
-            { in: 'in-phone2',        out: 'out-phone2' },
-            { in: 'in-relation',      out: 'out-relation' },
-            { in: 'in-doj',           out: 'out-doj' },
-            { in: 'in-uan',           out: 'out-uan' },
-            { in: 'in-transport',     out: 'out-transport' },
-            { in: 'in-working-state', out: 'out-working-state' }
-        ];
+    showLoading('Generating PDF...', 'Building A4 document');
+    try {
+        // Build the A4 HTML from saved data
+        const html = buildA4Html(r);
+        const opt = {
+            margin: 0,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        };
+        const fileName = sanitizeFileName(r.empId) + '_' + sanitizeFileName(r.name) + '.pdf';
+        await html2pdf().set(opt).from(html).save(fileName);
+        hideLoading();
+        showToast('PDF downloaded: ' + fileName, 'success', 3500);
+    } catch (err) {
+        hideLoading();
+        showToast('PDF error: ' + err.message, 'error');
+    }
+}
 
-        const requiredFields = [
-            'in-emp-id', 'in-name', 'in-designation', 'in-dob',
-            'in-gender', 'in-phone1', 'in-doj', 'in-working-state', 'in-emp-photo'
-        ];
+// Build full A4 HTML string from a record (used by downloadLockerPDF)
+function buildA4Html(r) {
+    const empPhoto = r.empPhoto || 'https://via.placeholder.com/180x220?text=No+Photo';
+    const aadhaarPhoto = r.aadhaarPhoto || 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload';
+    const panPhoto = r.panPhoto || 'https://via.placeholder.com/600x400?text=No+PAN+Upload';
+    const ts = new Date(r.savedAt).toLocaleString();
+    const aadhaar = r.aadhaar ? formatID(r.aadhaar, 4) : '-';
+    return `
+    <div style="font-family:'Segoe UI',sans-serif;">
+        <div style="background:white;color:#333;width:210mm;min-height:297mm;padding:20mm;position:relative;box-sizing:border-box;">
+            <div style="text-align:center;border-bottom:2px solid #003366;padding-bottom:15px;margin-bottom:25px;">
+                <h2 style="font-size:26px;color:#003366;text-transform:uppercase;letter-spacing:1px;margin:0;">Employee Profile Record</h2>
+                <p style="color:#666;font-size:13px;margin:5px 0 0 0;">Official Master Data &amp; Verification Document</p>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:30px;align-items:flex-start;">
+                <div style="flex:1.5;">
+                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">1. Personal Information</div>
+                    ${row('Employee ID', r.empId)} ${row('Name', r.name)} ${row("Father's Name", r.father)}
+                    ${row('Date of Birth', formatDate(r.dob))} ${row('Gender', r.gender)} ${row('Blood Group', r.blood)}
+                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">2. Contact Details</div>
+                    ${row('Organization', r.organization)} ${row('Personal No', r.mobile)} ${row('Emergency No', (r.emergencyContact||'-') + ' (' + (r.relation||'-') + ')')}
+                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">3. Employment Details</div>
+                    ${row('Designation', r.designation)} ${row('Date of Joining', formatDate(r.doj))} ${row('UAN Number', r.uan)}
+                    ${row('Transport Mode', r.transport)} ${row('Working Status', r.workingStatus)}
+                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">4. Identification Numbers</div>
+                    ${row('Aadhaar Number', aadhaar)} ${row('PAN Number', r.pan)}
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+                    <div style="width:180px;height:220px;border:2px solid #333;background:#f9f9f9;overflow:hidden;margin-bottom:20px;">
+                        <img src="${empPhoto}" style="width:100%;height:100%;object-fit:cover;">
+                    </div>
+                    <div style="width:100%;text-align:right;margin-top:20px;">
+                        <div style="font-weight:bold;color:#333;">Authorized Signature</div>
+                        <div style="border-bottom:1px solid #333;width:100%;margin-top:5px;"></div>
+                        <div style="font-size:11px;color:#555;margin-top:5px;">HR Manager</div>
+                    </div>
+                </div>
+            </div>
+            <div style="position:absolute;bottom:10mm;left:20mm;right:20mm;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:5px;">
+                This is a system-generated record. For verification, please contact the HR Department.<br>Generated on: ${ts}
+            </div>
+        </div>
+        <div style="background:white;color:#333;width:210mm;min-height:297mm;padding:20mm;position:relative;box-sizing:border-box;page-break-before:always;">
+            <div style="text-align:center;border-bottom:2px solid #003366;padding-bottom:15px;margin-bottom:25px;">
+                <h2 style="font-size:26px;color:#003366;text-transform:uppercase;letter-spacing:1px;margin:0;">Identity Document Attachments</h2>
+                <p style="color:#666;font-size:13px;margin:5px 0 0 0;">Supporting Proofs for Employee ID: ${escapeHtml(r.empId||'-')}</p>
+            </div>
+            <div style="margin-top:20px;">
+                <div style="margin-bottom:40px;border:1px solid #ccc;padding:10px;">
+                    <div style="font-weight:bold;margin-bottom:10px;background:#eee;padding:5px;display:inline-block;color:#333;">Aadhaar Card</div>
+                    <img src="${aadhaarPhoto}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border:1px solid #ddd;">
+                </div>
+                <div style="margin-bottom:40px;border:1px solid #ccc;padding:10px;">
+                    <div style="font-weight:bold;margin-bottom:10px;background:#eee;padding:5px;display:inline-block;color:#333;">PAN Card</div>
+                    <img src="${panPhoto}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border:1px solid #ddd;">
+                </div>
+            </div>
+            <div style="position:absolute;bottom:10mm;left:20mm;right:20mm;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:5px;">Page 2 of 2 - Confidential Document</div>
+        </div>
+    </div>`;
+}
+function row(label, value) {
+    return `<div style="display:flex;margin-bottom:5px;border-bottom:1px dashed #eee;padding-bottom:2px;">
+        <span style="width:160px;font-weight:600;color:#555;font-size:13px;flex-shrink:0;">${label}:</span>
+        <span style="flex:1;color:#000;font-size:13px;font-weight:500;">${escapeHtml(value || '-')}</span>
+    </div>`;
+}
 
-        /* ============================================================
-         * FORM SUBMISSION FLOW
-         * 1. Validate
-         * 2. Build preview + load images
-         * 3. Generate PDF (html2pdf.js)
-         * 4. POST form data to SHEET script  (saves row)
-         * 5. POST {empId, name, pdfBase64} to PDF script (saves PDF)
-         *    Both requests fire in parallel using Promise.all
-         * 6. Show success message
-         * ============================================================ */
-        form.addEventListener('submit', async function (e) {
-            e.preventDefault();
+function deleteLockerRecord(id) {
+    if (!confirm('Delete this record? This cannot be undone.')) return;
+    let list = getLocker();
+    list = list.filter(x => x.id !== id);
+    localStorage.setItem(LOCKER_KEY, JSON.stringify(list));
+    renderLocker();
+    showToast('Record deleted from locker.', 'info', 2500);
+}
 
-            if (!validateForm()) {
-                showAlert('form', 'Please fill in all required (*) fields correctly.', 'error');
-                return;
-            }
+function clearAllLocker() {
+    const list = getLocker();
+    if (list.length === 0) { showToast('Locker is already empty.', 'info'); return; }
+    if (!confirm(`Delete ALL ${list.length} saved records? This cannot be undone.`)) return;
+    localStorage.removeItem(LOCKER_KEY);
+    renderLocker();
+    showToast('All locker records cleared.', 'info', 2500);
+}
 
-            btnGenerate.disabled = true;
-            btnGenerate.innerHTML = '<span class="spinner"></span>Building preview...';
-
-            // --- Build preview ---
-            fillTextFields();
-            document.getElementById('out-emp-id-2').textContent = document.getElementById('in-emp-id').value.trim();
-            document.getElementById('out-timestamp').textContent = new Date().toLocaleString();
-
-            formContainer.style.display = 'none';
-            previewContainer.style.display = 'block';
-            window.scrollTo(0, 0);
-
-            try {
-                // --- Step 1: load images ---
-                btnGenerate.innerHTML = '<span class="spinner"></span>Loading images...';
-                await Promise.all([
-                    loadImageIntoPreview('in-emp-photo', 'out-emp-photo',
-                        'https://via.placeholder.com/180x220?text=No+Photo'),
-                    loadImageIntoPreview('in-aadhaar-photo', 'out-aadhaar-photo',
-                        'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload'),
-                    loadImageIntoPreview('in-pan-photo', 'out-pan-photo',
-                        'https://via.placeholder.com/600x400?text=No+PAN+Upload')
-                ]);
-                await sleep(300);
-
-                // --- Step 2: generate PDF ---
-                btnGenerate.innerHTML = '<span class="spinner"></span>Generating PDF...';
-                const pdfBase64 = await renderPreviewToPdfBase64();
-
-                // --- Step 3: build payloads ---
-                const sheetPayload = buildSheetPayload();
-                const pdfPayload = {
-                    empId:      sheetPayload.empId,
-                    name:       sheetPayload.name,
-                    pdfBase64:  pdfBase64
-                };
-
-                // --- Step 4: POST to BOTH scripts in parallel ---
-                btnGenerate.innerHTML = '<span class="spinner"></span>Saving to Sheet & Drive...';
-                await Promise.all([
-                    fetch(SHEET_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(sheetPayload)
-                    }),
-                    fetch(PDF_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(pdfPayload)
-                    })
-                ]);
-
-                // --- Step 5: success ---
-                showAlert('preview',
-                    '<strong>Success!</strong> Employee record saved to Google Sheet and PDF stored in Drive as ' +
-                    '<code>' + sanitizeFileName(sheetPayload.empId) + '_' + sanitizeFileName(sheetPayload.name) + '.pdf</code>',
-                    'success');
-
-            } catch (err) {
-                console.error(err);
-                showAlert('preview',
-                    '<strong>Error:</strong> ' + (err.message || err.toString()) +
-                    '<br>Please try again. If the problem persists, check the browser console.',
-                    'error');
-            } finally {
-                btnGenerate.disabled = false;
-                btnGenerate.textContent = 'Generate Profile Record';
-            }
-        });
-
-        /* ============================================================
-         * VALIDATION
-         * ============================================================ */
-        function validateForm() {
-            let isValid = true;
-            requiredFields.forEach(id => {
-                const el = document.getElementById(id);
-                if (!el.value || (el.type === 'file' && !el.files.length)) {
-                    el.classList.add('error');
-                    isValid = false;
-                } else {
-                    el.classList.remove('error');
-                }
-            });
-
-            const aadhaarEl = document.getElementById('in-aadhaar');
-            const aadhaarDigits = aadhaarEl.value.replace(/\D/g, '');
-            if (aadhaarEl.value && aadhaarDigits.length !== 12) {
-                aadhaarEl.classList.add('error');
-                isValid = false;
-            }
-
-            const panEl = document.getElementById('in-pan');
-            if (panEl.value && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panEl.value.toUpperCase())) {
-                panEl.classList.add('error');
-                isValid = false;
-            }
-
-            const phone1 = document.getElementById('in-phone1').value.replace(/\D/g, '');
-            if (phone1.length < 10 || phone1.length > 15) {
-                document.getElementById('in-phone1').classList.add('error');
-                isValid = false;
-            }
-
-            return isValid;
-        }
-
-        /* ============================================================
-         * PREVIEW TEXT FILLING
-         * ============================================================ */
-        function fillTextFields() {
-            fields.forEach(field => {
-                const inputVal = document.getElementById(field.in).value;
-                document.getElementById(field.out).textContent = inputVal || '-';
-            });
-
-            const dob = document.getElementById('in-dob').value;
-            document.getElementById('out-dob').textContent = dob ? formatDate(dob) : '-';
-
-            const doj = document.getElementById('in-doj').value;
-            document.getElementById('out-doj').textContent = doj ? formatDate(doj) : '-';
-
-            const aadhaar = document.getElementById('in-aadhaar').value.replace(/\D/g, '');
-            document.getElementById('out-aadhaar').textContent = aadhaar ? formatID(aadhaar, 4) : '-';
-
-            const pan = document.getElementById('in-pan').value.toUpperCase();
-            document.getElementById('out-pan').textContent = pan || '-';
-        }
-
-        /* ============================================================
-         * Load a file (or fallback URL) into a preview <img>,
-         * resolving only AFTER the image has fully decoded.
-         * ============================================================ */
-        function loadImageIntoPreview(inputId, outputId, fallbackSrc) {
-            return new Promise((resolve) => {
-                const input = document.getElementById(inputId);
-                const img = document.getElementById(outputId);
-
-                const finalize = (src) => {
-                    img.onload = () => resolve();
-                    img.onerror = () => resolve();
-                    img.src = src;
-                };
-
-                if (input.files && input.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = e => finalize(e.target.result);
-                    reader.onerror = () => finalize(fallbackSrc);
-                    reader.readAsDataURL(input.files[0]);
-                } else {
-                    finalize(fallbackSrc);
-                }
-            });
-        }
-
-        /* ============================================================
-         * Render #pdf-content (the two A4 pages) to a PDF,
-         * return the PDF as a base64 string (no data: prefix).
-         * ============================================================ */
-        function renderPreviewToPdfBase64() {
-            return new Promise((resolve, reject) => {
-                const element = document.getElementById('pdf-content');
-
-                const opt = {
-                    margin:      0,
-                    image:       { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff',
-                        logging: false
-                    },
-                    jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                    pagebreak:   { mode: ['css', 'legacy'], before: '.page-2' }
-                };
-
-                html2pdf().set(opt).from(element).toPdf().output('blob')
-                    .then(blob => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const b64 = reader.result.split(',')[1];
-                            resolve(b64);
-                        };
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    })
-                    .catch(reject);
-            });
-        }
-
-        /* ============================================================
-         * BUILD PAYLOAD FOR SHEET SCRIPT
-         * (Same shape your existing Sheet script expects)
-         * ============================================================ */
-        function buildSheetPayload() {
-            return {
-                empId:            document.getElementById('in-emp-id').value.trim(),
-                name:             document.getElementById('in-name').value.trim(),
-                designation:      document.getElementById('in-designation').value.trim(),
-                father:           document.getElementById('in-father').value.trim(),
-                dob:              document.getElementById('in-dob').value,
-                gender:           document.getElementById('in-gender').value,
-                blood:            document.getElementById('in-blood').value,
-                mobile:           document.getElementById('in-phone1').value.trim(),
-                organization:     document.getElementById('in-org').value.trim(),
-                emergencyContact: document.getElementById('in-phone2').value.trim(),
-                relation:         document.getElementById('in-relation').value,
-                doj:              document.getElementById('in-doj').value,
-                uan:              document.getElementById('in-uan').value.trim(),
-                transport:        document.getElementById('in-transport').value.trim(),
-                workingStatus:    document.getElementById('in-working-state').value,
-                aadhaar:          document.getElementById('in-aadhaar').value.replace(/\D/g, ''),
-                pan:              document.getElementById('in-pan').value.toUpperCase().trim()
-            };
-        }
-
-        /* ============================================================
-         * UI HELPERS
-         * ============================================================ */
-        function showAlert(target, html, type) {
-            const alertEl = (target === 'preview')
-                ? document.getElementById('preview-status-alert')
-                : document.getElementById('status-alert');
-            alertEl.className = 'alert alert-' + type + ' show';
-            alertEl.innerHTML = html;
-        }
-
-        function goBack() {
-            previewContainer.style.display = 'none';
-            formContainer.style.display = 'block';
-            window.scrollTo(0, 0);
-        }
-
-        function resetAll() {
-            if (confirm('Clear all data?')) {
-                form.reset();
-                document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-                document.getElementById('status-alert').className = 'alert';
-            }
-        }
-
-        function downloadPDF() {
-            window.print();
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            const [y, m, d] = dateString.split('-');
-            return d + '/' + m + '/' + y;
-        }
-
-        function formatID(str, interval) {
-            if (!str) return '-';
-            return str.match(new RegExp('.{1,' + interval + '}', 'g')).join(' ');
-        }
-
-        function sanitizeFileName(name) {
-            return String(name || '').replace(/[^a-zA-Z0-9]/g, '_');
-        }
-
-        function sleep(ms) {
-            return new Promise(r => setTimeout(r, ms));
-        }
-    </script>
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    updateLockerStats();
+    renderLocker();
+});
+</script>
 </body>
 </html>
