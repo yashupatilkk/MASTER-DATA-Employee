@@ -270,6 +270,66 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
     .nav-btn { flex: 1; justify-content: center; padding: 8px 12px; font-size: 0.8rem; }
     .app-nav { flex-direction: column; height: auto; padding: 12px 5%; gap: 10px; }
 }
+
+/* ============================================================
+ * LOCKER PASSWORD GATE
+ * ============================================================ */
+.locker-gate {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 60vh; padding: 40px 20px; text-align: center;
+    animation: fadeUp 0.4s ease-out;
+}
+.gate-icon-wrap {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 25px; box-shadow: 0 10px 40px rgba(20, 184, 166, 0.35);
+    animation: pulseGlow 2.5s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 10px 40px rgba(20, 184, 166, 0.35); }
+    50% { box-shadow: 0 10px 60px rgba(20, 184, 166, 0.55); }
+}
+.gate-icon-wrap i { font-size: 3rem; color: white; }
+.gate-title { font-family: 'Poppins'; font-size: 1.6rem; font-weight: 600; color: white; margin-bottom: 8px; }
+.gate-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 30px; max-width: 400px; }
+.gate-input-wrap {
+    position: relative; width: 100%; max-width: 360px; margin-bottom: 16px;
+}
+.gate-input-wrap i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.gate-input {
+    width: 100%; padding: 14px 50px 14px 44px; background: var(--bg-input);
+    border: 1px solid var(--border-light); border-radius: var(--radius-md);
+    color: white; font-family: 'Inter'; font-size: 1rem; transition: all 0.2s;
+}
+.gate-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15); background: #0f172a; }
+.gate-input.error-shake { border-color: var(--danger); animation: shake 0.4s; }
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+.gate-toggle-eye {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 6px;
+}
+.gate-toggle-eye:hover { color: var(--primary); }
+.gate-btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.gate-hint { margin-top: 20px; font-size: 0.8rem; color: var(--text-muted); }
+.gate-hint code { background: rgba(20, 184, 166, 0.15); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+.gate-error { color: var(--danger); font-size: 0.85rem; margin-top: 12px; min-height: 20px; display: flex; align-items: center; gap: 6px; }
+.gate-divider { width: 100%; max-width: 360px; height: 1px; background: var(--border-light); margin: 25px 0; position: relative; }
+.gate-divider span { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-main); padding: 0 12px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.locker-locked-content { display: none; }
+.locker-locked-content.visible { display: block; }
+.locker-unlock-banner {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 20px;
+}
+.locker-unlock-banner .lock-info { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--success); }
+.locker-unlock-banner .lock-actions { display: flex; gap: 8px; }
+.locker-unlock-banner .btn { padding: 6px 12px; font-size: 0.78rem; }
 </style>
 </head>
 <body>
@@ -437,28 +497,93 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
 
 <!-- ============ LOCKER TAB ============ -->
 <section class="view-section" id="tab-locker">
-    <h1 class="page-title">Data Locker</h1>
-    <p class="page-subtitle">All employee records saved locally in your browser. View, download as PDF, or delete anytime.</p>
 
-    <div class="locker-stats">
-        <div class="stat-pill"><i class="fa-solid fa-database"></i><div><div class="stat-val" id="locker-count">0</div><div class="stat-lbl">Saved Records</div></div></div>
-        <div class="stat-pill"><i class="fa-solid fa-hard-drive"></i><div><div class="stat-val" id="locker-size">0 KB</div><div class="stat-lbl">Storage Used</div></div></div>
-        <div class="stat-pill"><i class="fa-solid fa-calendar-check"></i><div><div class="stat-val" id="locker-recent">-</div><div class="stat-lbl">Last Saved</div></div></div>
-    </div>
+    <!-- PASSWORD GATE (shown when locked) -->
+    <div class="locker-gate" id="locker-gate">
+        <div class="gate-icon-wrap"><i class="fa-solid fa-lock"></i></div>
+        <h1 class="gate-title">Data Locker Locked</h1>
+        <p class="gate-subtitle">Enter your password to access saved employee records.</p>
 
-    <div class="locker-toolbar">
-        <div class="search-wrap">
-            <i class="fa-solid fa-search"></i>
-            <input type="text" class="locker-search" id="locker-search" placeholder="Search by ID, name, or designation..." oninput="renderLocker()">
+        <div class="gate-input-wrap">
+            <i class="fa-solid fa-key"></i>
+            <input type="password" class="gate-input" id="gate-password"
+                   placeholder="Enter password" onkeydown="if(event.key==='Enter')unlockLocker()">
+            <button class="gate-toggle-eye" onclick="toggleGatePassword()" title="Show/Hide"><i class="fa-solid fa-eye" id="gate-eye-icon"></i></button>
         </div>
-        <button class="btn btn-secondary" onclick="switchTab('employee', document.querySelector('.nav-btn[data-tab=employee]'))"><i class="fa-solid fa-plus"></i> New Entry</button>
-        <button class="btn btn-danger" onclick="clearAllLocker()"><i class="fa-solid fa-trash"></i> Clear All</button>
+
+        <div class="gate-btn-row">
+            <button class="btn btn-primary btn-lg" onclick="unlockLocker()"><i class="fa-solid fa-unlock"></i> Unlock</button>
+            <button class="btn btn-secondary" onclick="switchTab('employee', document.querySelector('.nav-btn[data-tab=employee]'))"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        </div>
+
+        <div class="gate-error" id="gate-error"></div>
+
+        <div class="gate-divider"><span>Or</span></div>
+
+        <button class="btn btn-accent" onclick="showChangePasswordModal()"><i class="fa-solid fa-key"></i> Set / Change Password</button>
+
+        <p class="gate-hint">Default password: <code>admin123</code> &nbsp;•&nbsp; Change it after first use.</p>
     </div>
 
-    <div class="locker-grid" id="locker-grid">
-        <!-- Cards injected here -->
+    <!-- LOCKED CONTENT (shown after unlock) -->
+    <div class="locker-locked-content" id="locker-content">
+
+        <div class="locker-unlock-banner">
+            <div class="lock-info"><i class="fa-solid fa-lock-open"></i> <span>Locker unlocked — session active</span></div>
+            <div class="lock-actions">
+                <button class="btn btn-secondary" onclick="showChangePasswordModal()"><i class="fa-solid fa-key"></i> Change Password</button>
+                <button class="btn btn-danger" onclick="lockLocker()"><i class="fa-solid fa-lock"></i> Lock Now</button>
+            </div>
+        </div>
+
+        <h1 class="page-title">Data Locker</h1>
+        <p class="page-subtitle">All employee records saved locally in your browser. View, download as PDF, or delete anytime.</p>
+
+        <div class="locker-stats">
+            <div class="stat-pill"><i class="fa-solid fa-database"></i><div><div class="stat-val" id="locker-count">0</div><div class="stat-lbl">Saved Records</div></div></div>
+            <div class="stat-pill"><i class="fa-solid fa-hard-drive"></i><div><div class="stat-val" id="locker-size">0 KB</div><div class="stat-lbl">Storage Used</div></div></div>
+            <div class="stat-pill"><i class="fa-solid fa-calendar-check"></i><div><div class="stat-val" id="locker-recent">-</div><div class="stat-lbl">Last Saved</div></div></div>
+        </div>
+
+        <div class="locker-toolbar">
+            <div class="search-wrap">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" class="locker-search" id="locker-search" placeholder="Search by ID, name, or designation..." oninput="renderLocker()">
+            </div>
+            <button class="btn btn-secondary" onclick="switchTab('employee', document.querySelector('.nav-btn[data-tab=employee]'))"><i class="fa-solid fa-plus"></i> New Entry</button>
+            <button class="btn btn-danger" onclick="clearAllLocker()"><i class="fa-solid fa-trash"></i> Clear All</button>
+        </div>
+
+        <div class="locker-grid" id="locker-grid">
+            <!-- Cards injected here -->
+        </div>
     </div>
 </section>
+
+<!-- ============ CHANGE PASSWORD MODAL ============ -->
+<div class="loading-overlay" id="password-modal" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);">
+    <div style="background:#1e293b;padding:35px;border-radius:var(--radius-lg);width:100%;max-width:400px;border:1px solid var(--border-light);box-shadow:0 20px 50px rgba(0,0,0,0.5);flex-direction:column;display:flex;">
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#d97706);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><i class="fa-solid fa-key" style="font-size:1.5rem;color:white;"></i></div>
+            <h3 style="font-family:'Poppins';color:white;font-size:1.2rem;margin-bottom:4px;">Change Password</h3>
+            <p style="color:var(--text-muted);font-size:0.85rem;">Set a new password to lock your Data Locker.</p>
+        </div>
+
+        <label style="margin-bottom:6px;">Current Password</label>
+        <input type="password" id="pw-current" placeholder="Enter current password" style="margin-bottom:14px;">
+
+        <label style="margin-bottom:6px;">New Password</label>
+        <input type="password" id="pw-new" placeholder="Enter new password" style="margin-bottom:14px;">
+
+        <label style="margin-bottom:6px;">Confirm New Password</label>
+        <input type="password" id="pw-confirm" placeholder="Re-enter new password" style="margin-bottom:18px;">
+
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-secondary btn-block" onclick="closeChangePasswordModal()">Cancel</button>
+            <button class="btn btn-save btn-block" onclick="changePassword()"><i class="fa-solid fa-check"></i> Save</button>
+        </div>
+    </div>
+</div>
 
 <script>
 /* ============================================================
@@ -477,8 +602,142 @@ function switchTab(tabName, btn) {
     if (btn) btn.classList.add('active');
     else document.querySelector(`.nav-btn[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById('tab-' + tabName).classList.add('active');
-    if (tabName === 'locker') renderLocker();
+    if (tabName === 'locker') {
+        // Show gate or content depending on lock state
+        if (lockerUnlocked) {
+            showLockerContent();
+            renderLocker();
+        } else {
+            showLockerGate();
+        }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+ * LOCKER PASSWORD PROTECTION
+ *
+ * Password is stored (hashed simply) in localStorage under
+ * 'lockerPassword'. Default is 'admin123' if not set.
+ * Session unlock state lives in memory only — relocks on
+ * page reload.
+ * ============================================================ */
+const LOCKER_PW_KEY = 'lockerPassword';
+const DEFAULT_LOCKER_PW = 'admin123';
+let lockerUnlocked = false;  // session-only state
+
+// Simple hash so the password isn't stored in plain text.
+// (Note: this is NOT secure crypto — it's a basic deterrent.
+// For real security, store records encrypted with a proper key.)
+function simpleHash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+        h = ((h << 5) - h) + str.charCodeAt(i);
+        h |= 0;
+    }
+    return String(h);
+}
+
+function getStoredPwHash() {
+    return localStorage.getItem(LOCKER_PW_KEY) || simpleHash(DEFAULT_LOCKER_PW);
+}
+
+function showLockerGate() {
+    document.getElementById('locker-gate').style.display = 'flex';
+    document.getElementById('locker-content').classList.remove('visible');
+    const input = document.getElementById('gate-password');
+    input.value = '';
+    setTimeout(() => input.focus(), 100);
+    document.getElementById('gate-error').innerHTML = '';
+}
+
+function showLockerContent() {
+    document.getElementById('locker-gate').style.display = 'none';
+    document.getElementById('locker-content').classList.add('visible');
+}
+
+function unlockLocker() {
+    const input = document.getElementById('gate-password');
+    const entered = input.value;
+    const errEl = document.getElementById('gate-error');
+
+    if (!entered) {
+        errEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Please enter the password.';
+        input.classList.add('error-shake');
+        setTimeout(() => input.classList.remove('error-shake'), 400);
+        return;
+    }
+
+    if (simpleHash(entered) === getStoredPwHash()) {
+        lockerUnlocked = true;
+        showLockerContent();
+        renderLocker();
+        showToast('<strong>Locker unlocked!</strong><br>Welcome back.', 'success', 2500);
+    } else {
+        errEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Incorrect password. Try again.';
+        input.classList.add('error-shake');
+        setTimeout(() => input.classList.remove('error-shake'), 400);
+        input.value = '';
+        input.focus();
+    }
+}
+
+function lockLocker() {
+    lockerUnlocked = false;
+    showLockerGate();
+    showToast('Locker locked.', 'info', 2000);
+}
+
+function toggleGatePassword() {
+    const input = document.getElementById('gate-password');
+    const icon = document.getElementById('gate-eye-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+/* ----- Change Password Modal ----- */
+function showChangePasswordModal() {
+    document.getElementById('password-modal').classList.add('active');
+    document.getElementById('pw-current').value = '';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+    setTimeout(() => document.getElementById('pw-current').focus(), 100);
+}
+function closeChangePasswordModal() {
+    document.getElementById('password-modal').classList.remove('active');
+}
+
+function changePassword() {
+    const current = document.getElementById('pw-current').value;
+    const newPw = document.getElementById('pw-new').value;
+    const confirmPw = document.getElementById('pw-confirm').value;
+
+    if (!current || !newPw || !confirmPw) {
+        showToast('Please fill in all three fields.', 'error');
+        return;
+    }
+    if (simpleHash(current) !== getStoredPwHash()) {
+        showToast('Current password is incorrect.', 'error');
+        return;
+    }
+    if (newPw.length < 4) {
+        showToast('New password must be at least 4 characters.', 'error');
+        return;
+    }
+    if (newPw !== confirmPw) {
+        showToast('New passwords do not match.', 'error');
+        return;
+    }
+    localStorage.setItem(LOCKER_PW_KEY, simpleHash(newPw));
+    closeChangePasswordModal();
+    showToast('<strong>Password changed!</strong><br>Use the new password next time you unlock.', 'success', 3500);
 }
 
 /* ============================================================
@@ -703,6 +962,8 @@ async function saveToLocker() {
         hideLoading();
         updateLockerStats();
         showToast('<strong>Saved to Locker!</strong><br>' + record.empId + ' — ' + record.name, 'success', 3500);
+        // Auto-unlock since the user just saved a record (they're already using the form)
+        lockerUnlocked = true;
         // Switch to locker tab to show the new entry
         switchTab('locker', document.querySelector('.nav-btn[data-tab="locker"]'));
     } catch (err) {
