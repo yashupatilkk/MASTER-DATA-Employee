@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- NEW: pdf.js for rendering PDF first page as image -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
 :root {
@@ -330,6 +332,147 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
 .locker-unlock-banner .lock-info { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--success); }
 .locker-unlock-banner .lock-actions { display: flex; gap: 8px; }
 .locker-unlock-banner .btn { padding: 6px 12px; font-size: 0.78rem; }
+
+/* ============================================================
+ * NEW: FILE UPLOAD ENHANCEMENT STYLES
+ * ============================================================ */
+.upload-wrap { position: relative; }
+.upload-wrap label { margin-bottom: 8px; }
+.file-info {
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
+    font-size: 0.8rem; color: var(--text-muted); min-height: 22px;
+}
+.file-info .file-name {
+    background: rgba(20, 184, 166, 0.1); color: var(--primary);
+    padding: 2px 8px; border-radius: 4px; font-size: 0.78rem;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: inline-block;
+}
+.file-info .file-name.pdf-file {
+    background: rgba(245, 158, 11, 0.12); color: var(--accent);
+}
+.file-info .file-badge {
+    font-size: 0.65rem; padding: 1px 6px; border-radius: 3px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+}
+.file-info .file-badge.img-badge { background: rgba(20,184,166,0.15); color: var(--primary); }
+.file-info .file-badge.pdf-badge { background: rgba(245,158,11,0.15); color: var(--accent); }
+.file-info .crop-hint {
+    margin-left: auto; font-size: 0.72rem; color: var(--accent);
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.upload-accept-hint {
+    font-size: 0.72rem; color: rgba(148,163,184,0.6); margin-top: 4px;
+}
+
+/* ============================================================
+ * NEW: CROP MODAL STYLES
+ * ============================================================ */
+.crop-overlay {
+    position: fixed; inset: 0; z-index: 6000;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(6px);
+    display: none; justify-content: center; align-items: center;
+    flex-direction: column; padding: 20px;
+}
+.crop-overlay.active { display: flex; }
+
+.crop-modal {
+    background: #1e293b; border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg); width: 100%; max-width: 720px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6); overflow: hidden;
+    display: flex; flex-direction: column; max-height: 90vh;
+}
+.crop-header {
+    padding: 18px 22px; border-bottom: 1px solid var(--border-light);
+    display: flex; justify-content: space-between; align-items: flex-start;
+}
+.crop-header-text h3 {
+    font-family: 'Poppins'; font-size: 1.05rem; color: white; font-weight: 600; margin-bottom: 3px;
+}
+.crop-header-text p { font-size: 0.78rem; color: var(--text-muted); }
+.crop-close-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    transition: all 0.2s;
+}
+.crop-close-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+
+.crop-viewport {
+    position: relative; width: 100%; height: 450px; overflow: hidden;
+    background: #0a0f1a; cursor: crosshair; user-select: none; -webkit-user-select: none;
+    flex-shrink: 0;
+}
+@media (max-width: 768px) { .crop-viewport { height: 320px; } }
+
+.crop-viewport img {
+    position: absolute; pointer-events: none;
+    max-width: none; max-height: none;
+}
+
+.crop-box {
+    position: absolute; border: 2px solid rgba(255,255,255,0.9);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    cursor: move; z-index: 10;
+    transition: none;
+}
+.crop-box.dragging { border-color: var(--primary); }
+
+.crop-grid {
+    position: absolute; inset: 0; pointer-events: none; z-index: 11;
+}
+.grid-line { position: absolute; background: rgba(255,255,255,0.25); }
+.grid-line.h1 { top: 33.33%; left: 0; right: 0; height: 1px; }
+.grid-line.h2 { top: 66.66%; left: 0; right: 0; height: 1px; }
+.grid-line.v1 { left: 33.33%; top: 0; bottom: 0; width: 1px; }
+.grid-line.v2 { left: 66.66%; top: 0; bottom: 0; width: 1px; }
+
+.crop-handle {
+    position: absolute; width: 18px; height: 18px;
+    background: white; border: 2.5px solid var(--primary);
+    border-radius: 3px; z-index: 20;
+    transition: transform 0.15s;
+}
+.crop-handle:hover { transform: scale(1.2); }
+.crop-handle.nw { top: -9px; left: -9px; cursor: nw-resize; }
+.crop-handle.ne { top: -9px; right: -9px; cursor: ne-resize; }
+.crop-handle.sw { bottom: -9px; left: -9px; cursor: sw-resize; }
+.crop-handle.se { bottom: -9px; right: -9px; cursor: se-resize; }
+
+/* Edge handles for additional resize control */
+.crop-edge {
+    position: absolute; z-index: 15; background: transparent;
+}
+.crop-edge.edge-n { top: -4px; left: 10%; right: 10%; height: 8px; cursor: n-resize; }
+.crop-edge.edge-s { bottom: -4px; left: 10%; right: 10%; height: 8px; cursor: s-resize; }
+.crop-edge.edge-w { left: -4px; top: 10%; bottom: 10%; width: 8px; cursor: w-resize; }
+.crop-edge.edge-e { right: -4px; top: 10%; bottom: 10%; width: 8px; cursor: e-resize; }
+
+.crop-footer {
+    padding: 14px 22px; border-top: 1px solid var(--border-light);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.crop-footer .crop-ratio-info {
+    font-size: 0.75rem; color: var(--text-muted); flex: 1; min-width: 120px;
+}
+.crop-footer .crop-ratio-info span { color: var(--primary); font-weight: 600; }
+
+.crop-preview-mini {
+    width: 56px; height: 56px; border-radius: 8px; overflow: hidden;
+    border: 2px solid var(--border-light); background: #0a0f1a;
+    flex-shrink: 0;
+}
+.crop-preview-mini img { width: 100%; height: 100%; object-fit: cover; }
+
+/* PDF placeholder in A4 preview */
+.pdf-attachment-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%; min-height: 200px; border: 2px dashed #bbb; border-radius: 8px;
+    background: #f5f5f5; color: #666; padding: 30px; gap: 10px;
+}
+.pdf-attachment-placeholder i { font-size: 3rem; color: #d97706; }
+.pdf-attachment-placeholder .pdf-ph-title { font-weight: 700; font-size: 16px; color: #333; }
+.pdf-attachment-placeholder .pdf-ph-fname { font-size: 12px; color: #888; word-break: break-all; text-align: center; }
 </style>
 </head>
 <body>
@@ -410,9 +553,30 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
             <div class="input-grid">
                 <div class="col-6"><label>Aadhaar Number</label><input type="text" id="in-aadhaar" maxlength="14" placeholder="1234 5678 9012"></div>
                 <div class="col-6"><label>PAN Number</label><input type="text" id="in-pan" maxlength="10" placeholder="ABCDE1234F" style="text-transform:uppercase;"></div>
-                <div class="col-6"><label>Upload Aadhaar Card</label><input type="file" id="in-aadhaar-photo" accept="image/*"></div>
-                <div class="col-6"><label>Upload PAN Card</label><input type="file" id="in-pan-photo" accept="image/*"></div>
-                <div class="col-12"><label class="required">Upload Employee Photo</label><input type="file" id="in-emp-photo" accept="image/*" required></div>
+
+                <!-- MODIFIED: Aadhaar upload now accepts images + PDF, with crop for images -->
+                <div class="col-6 upload-wrap">
+                    <label>Upload Aadhaar Card</label>
+                    <input type="file" id="in-aadhaar-photo" accept="image/*,application/pdf">
+                    <div class="file-info" id="info-aadhaar-photo"></div>
+                    <div class="upload-accept-hint"><i class="fa-solid fa-circle-info"></i> Images (crop enabled) or PDF files accepted</div>
+                </div>
+
+                <!-- MODIFIED: PAN upload now accepts images + PDF, with crop for images -->
+                <div class="col-6 upload-wrap">
+                    <label>Upload PAN Card</label>
+                    <input type="file" id="in-pan-photo" accept="image/*,application/pdf">
+                    <div class="file-info" id="info-pan-photo"></div>
+                    <div class="upload-accept-hint"><i class="fa-solid fa-circle-info"></i> Images (crop enabled) or PDF files accepted</div>
+                </div>
+
+                <!-- Employee Photo: crop enabled for images -->
+                <div class="col-12 upload-wrap">
+                    <label class="required">Upload Employee Photo</label>
+                    <input type="file" id="in-emp-photo" accept="image/*" required>
+                    <div class="file-info" id="info-emp-photo"></div>
+                    <div class="upload-accept-hint"><i class="fa-solid fa-crop-simple"></i> Photo crop tool will open after selection</div>
+                </div>
             </div>
 
             <div class="action-bar">
@@ -478,12 +642,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
                         <h2>Identity Document Attachments</h2>
                         <p>Supporting Proofs for Employee ID: <span id="out-emp-id-2">-</span></p>
                     </div>
-                    <div class="attachment-container">
-                        <div class="attachment-box">
+                    <div class="attachment-container" id="attachment-container">
+                        <div class="attachment-box" id="aadhaar-attachment-box">
                             <div class="attachment-label">Aadhaar Card</div>
                             <img id="out-aadhaar-photo" class="attachment-img" src="https://via.placeholder.com/600x400?text=No+Aadhaar+Upload" alt="Aadhaar Card">
                         </div>
-                        <div class="attachment-box">
+                        <div class="attachment-box" id="pan-attachment-box">
                             <div class="attachment-label">PAN Card</div>
                             <img id="out-pan-photo" class="attachment-img" src="https://via.placeholder.com/600x400?text=No+PAN+Upload" alt="PAN Card">
                         </div>
@@ -498,7 +662,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
 <!-- ============ LOCKER TAB ============ -->
 <section class="view-section" id="tab-locker">
 
-    <!-- PASSWORD GATE (shown when locked) -->
     <div class="locker-gate" id="locker-gate">
         <div class="gate-icon-wrap"><i class="fa-solid fa-lock"></i></div>
         <h1 class="gate-title">Data Locker Locked</h1>
@@ -525,7 +688,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
         <p class="gate-hint">Default password: <code>admin123</code> &nbsp;•&nbsp; Change it after first use.</p>
     </div>
 
-    <!-- LOCKED CONTENT (shown after unlock) -->
     <div class="locker-locked-content" id="locker-content">
 
         <div class="locker-unlock-banner">
@@ -554,9 +716,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
             <button class="btn btn-danger" onclick="clearAllLocker()"><i class="fa-solid fa-trash"></i> Clear All</button>
         </div>
 
-        <div class="locker-grid" id="locker-grid">
-            <!-- Cards injected here -->
-        </div>
+        <div class="locker-grid" id="locker-grid"></div>
     </div>
 </section>
 
@@ -585,6 +745,46 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
     </div>
 </div>
 
+<!-- ============ NEW: CROP MODAL ============ -->
+<div class="crop-overlay" id="crop-overlay">
+    <div class="crop-modal">
+        <div class="crop-header">
+            <div class="crop-header-text">
+                <h3 id="crop-modal-title">Crop Image</h3>
+                <p id="crop-modal-subtitle">Drag to move, drag corners to resize</p>
+            </div>
+            <button class="crop-close-btn" onclick="cancelCrop()" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="crop-viewport" id="crop-viewport">
+            <img id="crop-image" src="" alt="Crop preview">
+            <div class="crop-box" id="crop-box">
+                <div class="crop-grid">
+                    <div class="grid-line h1"></div>
+                    <div class="grid-line h2"></div>
+                    <div class="grid-line v1"></div>
+                    <div class="grid-line v2"></div>
+                </div>
+                <div class="crop-handle nw" data-handle="nw"></div>
+                <div class="crop-handle ne" data-handle="ne"></div>
+                <div class="crop-handle sw" data-handle="sw"></div>
+                <div class="crop-handle se" data-handle="se"></div>
+                <div class="crop-edge edge-n" data-handle="n"></div>
+                <div class="crop-edge edge-s" data-handle="s"></div>
+                <div class="crop-edge edge-w" data-handle="w"></div>
+                <div class="crop-edge edge-e" data-handle="e"></div>
+            </div>
+        </div>
+        <div class="crop-footer">
+            <div class="crop-preview-mini" id="crop-preview-mini"><img id="crop-preview-img" src="" alt="Preview"></div>
+            <div class="crop-ratio-info" id="crop-ratio-info">Ratio: <span>3:4</span> (Passport)</div>
+            <button class="btn btn-secondary btn-sm" onclick="resetCropBox()"><i class="fa-solid fa-arrows-rotate"></i> Reset</button>
+            <button class="btn btn-secondary btn-sm" onclick="cancelCrop()"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="applyCrop()"><i class="fa-solid fa-crop"></i> Crop & Apply</button>
+        </div>
+    </div>
+</div>
+
+
 <script>
 /* ============================================================
  * CONFIGURATION
@@ -592,6 +792,21 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opaci
 const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG82bx8rE-Brq1Hn3xKWHhQmLce5rAEWwHBs-604i_J_qtJu3G0J6oqg592Uwois4x/exec";
 const PDF_SCRIPT_URL   = "https://script.google.com/macros/s/AKfycbwN3vgw6GMEvrNe3qCNEPe8F0b1VLRglwEklBJ7Y-GQxQORmrA1tbt0F32-xFz4aZo/exec";
 const LOCKER_KEY = 'employeeLocker';
+
+/* Set pdf.js worker path */
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+/* ============================================================
+ * NEW: CROPPED DATA STORAGE
+ * Stores the cropped data URLs separately from file inputs
+ * ============================================================ */
+let croppedEmployeePhoto = null;  // data URL after crop
+let croppedAadhaarPhoto = null;    // data URL after crop (or PDF-rendered image)
+let croppedPanPhoto = null;        // data URL after crop (or PDF-rendered image)
+let aadhaarPdfName = null;         // filename if Aadhaar is a PDF
+let panPdfName = null;             // filename if PAN is a PDF
 
 /* ============================================================
  * TAB SWITCHING
@@ -603,7 +818,6 @@ function switchTab(tabName, btn) {
     else document.querySelector(`.nav-btn[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById('tab-' + tabName).classList.add('active');
     if (tabName === 'locker') {
-        // Show gate or content depending on lock state
         if (lockerUnlocked) {
             showLockerContent();
             renderLocker();
@@ -616,19 +830,11 @@ function switchTab(tabName, btn) {
 
 /* ============================================================
  * LOCKER PASSWORD PROTECTION
- *
- * Password is stored (hashed simply) in localStorage under
- * 'lockerPassword'. Default is 'admin123' if not set.
- * Session unlock state lives in memory only — relocks on
- * page reload.
  * ============================================================ */
 const LOCKER_PW_KEY = 'lockerPassword';
 const DEFAULT_LOCKER_PW = 'admin123';
-let lockerUnlocked = false;  // session-only state
+let lockerUnlocked = false;
 
-// Simple hash so the password isn't stored in plain text.
-// (Note: this is NOT secure crypto — it's a basic deterrent.
-// For real security, store records encrypted with a proper key.)
 function simpleHash(str) {
     let h = 0;
     for (let i = 0; i < str.length; i++) {
@@ -702,7 +908,6 @@ function toggleGatePassword() {
     }
 }
 
-/* ----- Change Password Modal ----- */
 function showChangePasswordModal() {
     document.getElementById('password-modal').classList.add('active');
     document.getElementById('pw-current').value = '';
@@ -719,22 +924,10 @@ function changePassword() {
     const newPw = document.getElementById('pw-new').value;
     const confirmPw = document.getElementById('pw-confirm').value;
 
-    if (!current || !newPw || !confirmPw) {
-        showToast('Please fill in all three fields.', 'error');
-        return;
-    }
-    if (simpleHash(current) !== getStoredPwHash()) {
-        showToast('Current password is incorrect.', 'error');
-        return;
-    }
-    if (newPw.length < 4) {
-        showToast('New password must be at least 4 characters.', 'error');
-        return;
-    }
-    if (newPw !== confirmPw) {
-        showToast('New passwords do not match.', 'error');
-        return;
-    }
+    if (!current || !newPw || !confirmPw) { showToast('Please fill in all three fields.', 'error'); return; }
+    if (simpleHash(current) !== getStoredPwHash()) { showToast('Current password is incorrect.', 'error'); return; }
+    if (newPw.length < 4) { showToast('New password must be at least 4 characters.', 'error'); return; }
+    if (newPw !== confirmPw) { showToast('New passwords do not match.', 'error'); return; }
     localStorage.setItem(LOCKER_PW_KEY, simpleHash(newPw));
     closeChangePasswordModal();
     showToast('<strong>Password changed!</strong><br>Use the new password next time you unlock.', 'success', 3500);
@@ -760,6 +953,517 @@ function showLoading(text, subtext) {
 function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
 
 /* ============================================================
+ * NEW: PDF TO IMAGE CONVERTER
+ * Uses pdf.js to render the first page of a PDF as a data URL
+ * ============================================================ */
+async function pdfToImage(file, maxWidth = 800) {
+    if (typeof pdfjsLib === 'undefined') {
+        throw new Error('pdf.js library not loaded');
+    }
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const typedArray = new Uint8Array(e.target.result);
+                const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = maxWidth / viewport.width;
+                const scaledViewport = page.getViewport({ scale: scale });
+
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(scaledViewport.width));
+                canvas.height = Math.max(1, Math.round(scaledViewport.height));
+                const ctx = canvas.getContext('2d');
+
+                await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            } catch (err) {
+                reject(err);
+            }
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+/* ============================================================
+ * NEW: PHOTO CROP TOOL
+ * Full-featured crop modal with aspect ratio lock,
+ * drag-to-move, corner/edge resize, rule-of-thirds grid,
+ * and live preview thumbnail.
+ * ============================================================ */
+const cropState = {
+    img: null,
+    naturalW: 0, naturalH: 0,
+    displayW: 0, displayH: 0,
+    offsetX: 0, offsetY: 0,
+    cropX: 0, cropY: 0, cropW: 0, cropH: 0,
+    isDragging: false,
+    dragType: '',
+    startMouseX: 0, startMouseY: 0,
+    startCropX: 0, startCropY: 0, startCropW: 0, startCropH: 0,
+    aspectRatio: 0.75, // 3:4 default (width/height)
+    targetCallback: null,
+    targetInputId: null
+};
+
+/* Open the crop modal for a given image file */
+function openCropModal(file, inputId, callback) {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            cropState.img = img;
+            cropState.naturalW = img.naturalWidth;
+            cropState.naturalH = img.naturalHeight;
+            cropState.targetCallback = callback;
+            cropState.targetInputId = inputId;
+
+            /* Set aspect ratio based on which upload */
+            if (inputId === 'in-emp-photo') {
+                cropState.aspectRatio = 0.75; // 3:4 portrait
+                document.getElementById('crop-modal-title').textContent = 'Crop Employee Photo';
+                document.getElementById('crop-modal-subtitle').textContent = 'Adjust for passport-size photo (3:4 ratio)';
+                document.getElementById('crop-ratio-info').innerHTML = 'Ratio: <span>3:4</span> (Passport Photo)';
+            } else {
+                cropState.aspectRatio = 1.586; // ~ID card ratio (85.6:53.98mm)
+                document.getElementById('crop-modal-title').textContent = 'Crop Document Photo';
+                document.getElementById('crop-modal-subtitle').textContent = 'Adjust to fit the card edges';
+                document.getElementById('crop-ratio-info').innerHTML = 'Ratio: <span>8.5:5.4</span> (ID Card)';
+            }
+
+            document.getElementById('crop-image').src = e.target.result;
+            document.getElementById('crop-overlay').classList.add('active');
+
+            requestAnimationFrame(() => { requestAnimationFrame(() => { initCropBox(); }); });
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+/* Initialize crop box position and size after image loads in DOM */
+function initCropBox() {
+    const viewport = document.getElementById('crop-viewport');
+    const vpW = viewport.clientWidth;
+    const vpH = viewport.clientHeight;
+    const img = cropState.img;
+    const ar = cropState.aspectRatio;
+
+    /* Fit image in viewport */
+    const scale = Math.min(vpW / img.naturalWidth, vpH / img.naturalHeight, 1);
+    cropState.displayW = img.naturalWidth * scale;
+    cropState.displayH = img.naturalHeight * scale;
+    cropState.offsetX = (vpW - cropState.displayW) / 2;
+    cropState.offsetY = (vpH - cropState.displayH) / 2;
+
+    const cropImg = document.getElementById('crop-image');
+    cropImg.style.width = cropState.displayW + 'px';
+    cropImg.style.height = cropState.displayH + 'px';
+    cropImg.style.left = cropState.offsetX + 'px';
+    cropImg.style.top = cropState.offsetY + 'px';
+
+    /* Initial crop box: centered, ~65% of image area, respecting aspect ratio */
+    let initW, initH;
+    const imgAr = cropState.displayW / cropState.displayH;
+    if (imgAr > ar) {
+        initH = cropState.displayH * 0.65;
+        initW = initH * ar;
+    } else {
+        initW = cropState.displayW * 0.65;
+        initH = initW / ar;
+    }
+
+    cropState.cropX = cropState.offsetX + (cropState.displayW - initW) / 2;
+    cropState.cropY = cropState.offsetY + (cropState.displayH - initH) / 2;
+    cropState.cropW = initW;
+    cropState.cropH = initH;
+
+    updateCropBoxUI();
+    updateCropPreview();
+}
+
+/* Reset crop box to default centered position */
+function resetCropBox() {
+    initCropBox();
+}
+
+/* Update crop box DOM element position/size */
+function updateCropBoxUI() {
+    const box = document.getElementById('crop-box');
+    box.style.left = cropState.cropX + 'px';
+    box.style.top = cropState.cropY + 'px';
+    box.style.width = cropState.cropW + 'px';
+    box.style.height = cropState.cropH + 'px';
+}
+
+/* Update the small preview thumbnail in the crop footer */
+function updateCropPreview() {
+    const d = cropState;
+    if (!d.img) return;
+
+    const scale = d.naturalW / d.displayW;
+    let srcX = Math.max(0, (d.cropX - d.offsetX) * scale);
+    let srcY = Math.max(0, (d.cropY - d.offsetY) * scale);
+    let srcW = Math.min(d.naturalW - srcX, d.cropW * scale);
+    let srcH = Math.min(d.naturalH - srcY, d.cropH * scale);
+
+    if (srcW <= 0 || srcH <= 0) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 112;
+    canvas.height = 112;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(d.img, srcX, srcY, srcW, srcH, 0, 0, 112, 112);
+    document.getElementById('crop-preview-img').src = canvas.toDataURL('image/jpeg', 0.7);
+}
+
+/* Get mouse/touch position relative to crop viewport */
+function getCropPos(e) {
+    const vp = document.getElementById('crop-viewport');
+    const rect = vp.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: cx - rect.left, y: cy - rect.top };
+}
+
+/* Determine what's under the cursor: a handle, the crop box, or nothing */
+function hitTestCrop(x, y) {
+    const d = cropState;
+    const hs = 22; // handle hit area size
+    const handles = {
+        'nw': { x: d.cropX, y: d.cropY },
+        'ne': { x: d.cropX + d.cropW, y: d.cropY },
+        'sw': { x: d.cropX, y: d.cropY + d.cropH },
+        'se': { x: d.cropX + d.cropW, y: d.cropY + d.cropH },
+    };
+    for (const [name, pos] of Object.entries(handles)) {
+        if (Math.abs(x - pos.x) < hs && Math.abs(y - pos.y) < hs) return name;
+    }
+    /* Edge hit test */
+    const edgePad = 12;
+    if (y >= d.cropY - edgePad && y <= d.cropY + edgePad && x > d.cropX + hs && x < d.cropX + d.cropW - hs) return 'n';
+    if (y >= d.cropY + d.cropH - edgePad && y <= d.cropY + d.cropH + edgePad && x > d.cropX + hs && x < d.cropX + d.cropW - hs) return 's';
+    if (x >= d.cropX - edgePad && x <= d.cropX + edgePad && y > d.cropY + hs && y < d.cropY + d.cropH - hs) return 'w';
+    if (x >= d.cropX + d.cropW - edgePad && x <= d.cropX + d.cropW + edgePad && y > d.cropY + hs && y < d.cropY + d.cropH - hs) return 'e';
+    /* Inside crop box */
+    if (x >= d.cropX && x <= d.cropX + d.cropW && y >= d.cropY && y <= d.cropY + d.cropH) return 'move';
+    return null;
+}
+
+/* Clamp crop box within image bounds */
+function clampCropBox() {
+    const d = cropState;
+    const minX = d.offsetX;
+    const minY = d.offsetY;
+    const maxX = d.offsetX + d.displayW;
+    const maxY = d.offsetY + d.displayH;
+
+    if (d.cropX < minX) d.cropX = minX;
+    if (d.cropY < minY) d.cropY = minY;
+    if (d.cropX + d.cropW > maxX) d.cropX = maxX - d.cropW;
+    if (d.cropY + d.cropH > maxY) d.cropY = maxY - d.cropH;
+}
+
+/* Mouse/touch down handler on crop viewport */
+function onCropPointerDown(e) {
+    e.preventDefault();
+    const pos = getCropPos(e);
+    const hit = hitTestCrop(pos.x, pos.y);
+    if (!hit) return;
+
+    cropState.isDragging = true;
+    cropState.dragType = hit;
+    cropState.startMouseX = pos.x;
+    cropState.startMouseY = pos.y;
+    cropState.startCropX = cropState.cropX;
+    cropState.startCropY = cropState.cropY;
+    cropState.startCropW = cropState.cropW;
+    cropState.startCropH = cropState.cropH;
+
+    document.getElementById('crop-box').classList.add('dragging');
+}
+
+/* Mouse/touch move handler */
+function onCropPointerMove(e) {
+    if (!cropState.isDragging) return;
+    e.preventDefault();
+
+    const pos = getCropPos(e);
+    const dx = pos.x - cropState.startMouseX;
+    const dy = pos.y - cropState.startMouseY;
+    const d = cropState;
+    const ar = d.aspectRatio;
+    const minSize = 40;
+
+    switch (d.dragType) {
+        case 'move':
+            d.cropX = d.startCropX + dx;
+            d.cropY = d.startCropY + dy;
+            clampCropBox();
+            break;
+
+        case 'se': {
+            let newW = d.startCropW + dx;
+            let newH = newW / ar;
+            if (newW < minSize) { newW = minSize; newH = minSize / ar; }
+            d.cropW = newW;
+            d.cropH = newH;
+            if (d.cropX + d.cropW > d.offsetX + d.displayW) {
+                d.cropW = d.offsetX + d.displayW - d.cropX;
+                d.cropH = d.cropW / ar;
+            }
+            if (d.cropY + d.cropH > d.offsetY + d.displayH) {
+                d.cropH = d.offsetY + d.displayH - d.cropY;
+                d.cropW = d.cropH * ar;
+            }
+            break;
+        }
+        case 'sw': {
+            let newW = d.startCropW - dx;
+            let newH = newW / ar;
+            if (newW < minSize) { newW = minSize; newH = minSize / ar; }
+            let newX = d.startCropX + d.startCropW - newW;
+            if (newX < d.offsetX) { newX = d.offsetX; newW = d.startCropX + d.startCropW - newX; newH = newW / ar; }
+            if (d.startCropY + newH > d.offsetY + d.displayH) { newH = d.offsetY + d.displayH - d.startCropY; newW = newH * ar; newX = d.startCropX + d.startCropW - newW; }
+            d.cropX = newX; d.cropW = newW; d.cropH = newH;
+            break;
+        }
+        case 'ne': {
+            let newW = d.startCropW + dx;
+            let newH = newW / ar;
+            if (newW < minSize) { newW = minSize; newH = minSize / ar; }
+            let newY = d.startCropY + d.startCropH - newH;
+            if (d.cropX + newW > d.offsetX + d.displayW) { newW = d.offsetX + d.displayW - d.cropX; newH = newW / ar; newY = d.startCropY + d.startCropH - newH; }
+            if (newY < d.offsetY) { newY = d.offsetY; newH = d.startCropY + d.startCropH - newY; newW = newH * ar; }
+            d.cropY = newY; d.cropW = newW; d.cropH = newH;
+            break;
+        }
+        case 'nw': {
+            let newW = d.startCropW - dx;
+            let newH = newW / ar;
+            if (newW < minSize) { newW = minSize; newH = minSize / ar; }
+            let newX = d.startCropX + d.startCropW - newW;
+            let newY = d.startCropY + d.startCropH - newH;
+            if (newX < d.offsetX) { newX = d.offsetX; newW = d.startCropX + d.startCropW - newX; newH = newW / ar; newY = d.startCropY + d.startCropH - newH; }
+            if (newY < d.offsetY) { newY = d.offsetY; newH = d.startCropY + d.startCropH - newY; newW = newH * ar; newX = d.startCropX + d.startCropW - newW; }
+            d.cropX = newX; d.cropY = newY; d.cropW = newW; d.cropH = newH;
+            break;
+        }
+        case 'n': {
+            let newH = d.startCropH - dy;
+            if (newH < minSize) newH = minSize;
+            let newY = d.startCropY + d.startCropH - newH;
+            if (newY < d.offsetY) { newY = d.offsetY; newH = d.startCropY + d.startCropH - newY; }
+            d.cropY = newY; d.cropH = newH; d.cropW = newH * ar;
+            if (d.cropX + d.cropW > d.offsetX + d.displayW) d.cropX = d.offsetX + d.displayW - d.cropW;
+            break;
+        }
+        case 's': {
+            let newH = d.startCropH + dy;
+            if (newH < minSize) newH = minSize;
+            if (d.startCropY + newH > d.offsetY + d.displayH) newH = d.offsetY + d.displayH - d.startCropY;
+            d.cropH = newH; d.cropW = newH * ar;
+            if (d.cropX + d.cropW > d.offsetX + d.displayW) d.cropX = d.offsetX + d.displayW - d.cropW;
+            break;
+        }
+        case 'w': {
+            let newW = d.startCropW - dx;
+            if (newW < minSize) newW = minSize;
+            let newX = d.startCropX + d.startCropW - newW;
+            if (newX < d.offsetX) { newX = d.offsetX; newW = d.startCropX + d.startCropW - newX; }
+            d.cropX = newX; d.cropW = newW; d.cropH = newW / ar;
+            if (d.cropY + d.cropH > d.offsetY + d.displayH) d.cropY = d.offsetY + d.displayH - d.cropH;
+            break;
+        }
+        case 'e': {
+            let newW = d.startCropW + dx;
+            if (newW < minSize) newW = minSize;
+            if (d.startCropX + newW > d.offsetX + d.displayW) newW = d.offsetX + d.displayW - d.startCropX;
+            d.cropW = newW; d.cropH = newW / ar;
+            if (d.cropY + d.cropH > d.offsetY + d.displayH) d.cropY = d.offsetY + d.displayH - d.cropH;
+            break;
+        }
+    }
+
+    updateCropBoxUI();
+    updateCropPreview();
+}
+
+/* Mouse/touch up handler */
+function onCropPointerUp(e) {
+    if (!cropState.isDragging) return;
+    cropState.isDragging = false;
+    cropState.dragType = '';
+    document.getElementById('crop-box').classList.remove('dragging');
+}
+
+/* Attach crop event listeners */
+(function initCropEvents() {
+    const vp = document.getElementById('crop-viewport');
+    vp.addEventListener('mousedown', onCropPointerDown);
+    window.addEventListener('mousemove', onCropPointerMove);
+    window.addEventListener('mouseup', onCropPointerUp);
+    vp.addEventListener('touchstart', onCropPointerDown, { passive: false });
+    window.addEventListener('touchmove', onCropPointerMove, { passive: false });
+    window.addEventListener('touchend', onCropPointerUp);
+
+    /* Prevent context menu in crop area */
+    vp.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
+/* Apply the crop: extract the selected area as a data URL */
+function applyCrop() {
+    const d = cropState;
+    const scale = d.naturalW / d.displayW;
+
+    let srcX = Math.max(0, (d.cropX - d.offsetX) * scale);
+    let srcY = Math.max(0, (d.cropY - d.offsetY) * scale);
+    let srcW = Math.min(d.naturalW - srcX, d.cropW * scale);
+    let srcH = Math.min(d.naturalH - srcY, d.cropH * scale);
+
+    if (srcW <= 0 || srcH <= 0) {
+        showToast('Invalid crop area. Please adjust and try again.', 'error');
+        return;
+    }
+
+    /* Output at good resolution */
+    const outputH = Math.round(Math.min(srcH, 800));
+    const outputW = Math.round(outputH * (srcW / srcH));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, outputW);
+    canvas.height = Math.max(1, outputH);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(d.img, srcX, srcY, srcW, srcH, 0, 0, outputW, outputH);
+
+    const resultDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    document.getElementById('crop-overlay').classList.remove('active');
+
+    if (d.targetCallback) d.targetCallback(resultDataUrl);
+
+    showToast('<i class="fa-solid fa-crop"></i> Image cropped successfully!', 'success', 2500);
+}
+
+/* Cancel crop: close modal and reset the file input */
+function cancelCrop() {
+    document.getElementById('crop-overlay').classList.remove('active');
+    const inputId = cropState.targetInputId;
+    if (inputId) {
+        document.getElementById(inputId).value = '';
+        updateFileInfo(inputId, null, null);
+        /* Clear corresponding cropped data */
+        if (inputId === 'in-emp-photo') croppedEmployeePhoto = null;
+        if (inputId === 'in-aadhaar-photo') { croppedAadhaarPhoto = null; aadhaarPdfName = null; }
+        if (inputId === 'in-pan-photo') { croppedPanPhoto = null; panPdfName = null; }
+    }
+}
+
+/* ============================================================
+ * NEW: FILE INPUT CHANGE HANDLERS
+ * Intercepts file selection to trigger crop (images) or
+ * process PDFs (for Aadhaar/PAN)
+ * ============================================================ */
+function updateFileInfo(inputId, file, fileType) {
+    const infoMap = {
+        'in-emp-photo': 'info-emp-photo',
+        'in-aadhaar-photo': 'info-aadhaar-photo',
+        'in-pan-photo': 'info-pan-photo'
+    };
+    const el = document.getElementById(infoMap[inputId]);
+    if (!el) return;
+
+    if (!file) { el.innerHTML = ''; return; }
+
+    const isPdf = fileType === 'pdf';
+    const badgeClass = isPdf ? 'pdf-badge' : 'img-badge';
+    const badgeText = isPdf ? 'PDF' : 'IMG';
+    const nameClass = isPdf ? 'file-name pdf-file' : 'file-name';
+
+    let html = `<span class="file-badge ${badgeClass}">${badgeText}</span>`;
+    html += `<span class="${nameClass}" title="${file.name}">${file.name}</span>`;
+
+    if (!isPdf && inputId !== 'in-emp-photo') {
+        html += `<span class="crop-hint"><i class="fa-solid fa-crop-simple"></i> Crop enabled</span>`;
+    }
+    if (!isPdf && inputId === 'in-emp-photo') {
+        html += `<span class="crop-hint"><i class="fa-solid fa-crop-simple"></i> Crop will open</span>`;
+    }
+
+    el.innerHTML = html;
+}
+
+/* Employee Photo: always crop */
+document.getElementById('in-emp-photo').addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        showToast('Employee Photo must be an image file (JPG, PNG, etc.).', 'error');
+        this.value = '';
+        updateFileInfo('in-emp-photo', null, null);
+        return;
+    }
+
+    updateFileInfo('in-emp-photo', file, 'image');
+    openCropModal(file, 'in-emp-photo', function(dataUrl) {
+        croppedEmployeePhoto = dataUrl;
+    });
+});
+
+/* Aadhaar Photo: crop for images, process PDFs */
+document.getElementById('in-aadhaar-photo').addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (!file) return;
+
+    if (file.type === 'application/pdf') {
+        updateFileInfo('in-aadhaar-photo', file, 'pdf');
+        aadhaarPdfName = file.name;
+        croppedAadhaarPhoto = null; // will be converted later during preview generation
+        showToast('<i class="fa-solid fa-file-pdf"></i> PDF selected for Aadhaar. It will be converted to image during generation.', 'info', 3500);
+    } else if (file.type.startsWith('image/')) {
+        updateFileInfo('in-aadhaar-photo', file, 'image');
+        aadhaarPdfName = null;
+        openCropModal(file, 'in-aadhaar-photo', function(dataUrl) {
+            croppedAadhaarPhoto = dataUrl;
+        });
+    } else {
+        showToast('Please select an image or PDF file.', 'error');
+        this.value = '';
+        updateFileInfo('in-aadhaar-photo', null, null);
+    }
+});
+
+/* PAN Photo: crop for images, process PDFs */
+document.getElementById('in-pan-photo').addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (!file) return;
+
+    if (file.type === 'application/pdf') {
+        updateFileInfo('in-pan-photo', file, 'pdf');
+        panPdfName = file.name;
+        croppedPanPhoto = null;
+        showToast('<i class="fa-solid fa-file-pdf"></i> PDF selected for PAN. It will be converted to image during generation.', 'info', 3500);
+    } else if (file.type.startsWith('image/')) {
+        updateFileInfo('in-pan-photo', file, 'image');
+        panPdfName = null;
+        openCropModal(file, 'in-pan-photo', function(dataUrl) {
+            croppedPanPhoto = dataUrl;
+        });
+    } else {
+        showToast('Please select an image or PDF file.', 'error');
+        this.value = '';
+        updateFileInfo('in-pan-photo', null, null);
+    }
+});
+
+/* ============================================================
  * EMPLOYEE FORM
  * ============================================================ */
 const form = document.getElementById('dataForm');
@@ -781,6 +1485,13 @@ const requiredFields = ['in-emp-id','in-name','in-designation','in-dob','in-gend
 form.addEventListener('submit', async function (e) {
     e.preventDefault();
     if (!validateForm()) { showToast('Please fill in all required (*) fields correctly.', 'error'); return; }
+
+    /* Check if employee photo was cropped */
+    if (!croppedEmployeePhoto && document.getElementById('in-emp-photo').files.length === 0) {
+        showToast('Please upload and crop the Employee Photo.', 'error');
+        return;
+    }
+
     btnGenerate.disabled = true;
     fillTextFields();
     document.getElementById('out-emp-id-2').textContent = document.getElementById('in-emp-id').value.trim();
@@ -788,13 +1499,19 @@ form.addEventListener('submit', async function (e) {
     formContainer.style.display = 'none';
     previewContainer.style.display = 'block';
     window.scrollTo(0, 0);
+
     try {
         showLoading('Loading images...', 'Reading uploaded files');
-        await Promise.all([
-            loadImageIntoPreview('in-emp-photo', 'out-emp-photo', 'https://via.placeholder.com/180x220?text=No+Photo'),
-            loadImageIntoPreview('in-aadhaar-photo', 'out-aadhaar-photo', 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload'),
-            loadImageIntoPreview('in-pan-photo', 'out-pan-photo', 'https://via.placeholder.com/600x400?text=No+PAN+Upload')
-        ]);
+
+        /* Load employee photo (use cropped version if available) */
+        await loadImageIntoPreview('in-emp-photo', 'out-emp-photo', 'https://via.placeholder.com/180x220?text=No+Photo');
+
+        /* Load Aadhaar (cropped image, PDF-converted image, or raw file) */
+        await loadImageIntoPreview('in-aadhaar-photo', 'out-aadhaar-photo', 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload');
+
+        /* Load PAN (cropped image, PDF-converted image, or raw file) */
+        await loadImageIntoPreview('in-pan-photo', 'out-pan-photo', 'https://via.placeholder.com/600x400?text=No+PAN+Upload');
+
         await sleep(300);
         showLoading('Generating PDF...', 'Rendering A4 document');
         const pdfBase64 = await renderPreviewToPdfBase64();
@@ -821,58 +1538,135 @@ function validateForm() {
     let isValid = true;
     requiredFields.forEach(id => {
         const el = document.getElementById(id);
-        if (!el.value || (el.type === 'file' && !el.files.length)) { el.classList.add('error'); isValid = false; }
-        else el.classList.remove('error');
+        if (id === 'in-emp-photo') {
+            /* Employee photo is valid if cropped or file selected */
+            if (!croppedEmployeePhoto && (!el.files || !el.files.length)) { el.classList.add('error'); isValid = false; }
+            else el.classList.remove('error');
+        } else {
+            if (!el.value) { el.classList.add('error'); isValid = false; }
+            else el.classList.remove('error');
+        }
     });
     const aadhaarEl = document.getElementById('in-aadhaar');
     if (aadhaarEl.value && aadhaarEl.value.replace(/\D/g, '').length !== 12) { aadhaarEl.classList.add('error'); isValid = false; }
+    else aadhaarEl.classList.remove('error');
     const panEl = document.getElementById('in-pan');
     if (panEl.value && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panEl.value.toUpperCase())) { panEl.classList.add('error'); isValid = false; }
+    else panEl.classList.remove('error');
     const phone1 = document.getElementById('in-phone1').value.replace(/\D/g, '');
     if (phone1.length < 10 || phone1.length > 15) { document.getElementById('in-phone1').classList.add('error'); isValid = false; }
+    else document.getElementById('in-phone1').classList.remove('error');
     return isValid;
 }
 
 function fillTextFields() {
-    fields.forEach(field => { document.getElementById(field.out).textContent = document.getElementById(field.in).value || '-'; });
-    document.getElementById('out-dob').textContent = formatDate(document.getElementById('in-dob').value);
-    document.getElementById('out-doj').textContent = formatDate(document.getElementById('in-doj').value);
-    const aadhaar = document.getElementById('in-aadhaar').value.replace(/\D/g, '');
-    document.getElementById('out-aadhaar').textContent = aadhaar ? formatID(aadhaar, 4) : '-';
-    document.getElementById('out-pan').textContent = document.getElementById('in-pan').value.toUpperCase() || '-';
-}
-
-function loadImageIntoPreview(inputId, outputId, fallbackSrc) {
-    return new Promise((resolve) => {
-        const input = document.getElementById(inputId);
-        const img = document.getElementById(outputId);
-        const finalize = (src) => { img.onload = () => resolve(); img.onerror = () => resolve(); img.src = src; };
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => finalize(e.target.result);
-            reader.onerror = () => finalize(fallbackSrc);
-            reader.readAsDataURL(input.files[0]);
-        } else finalize(fallbackSrc);
+    const dobVal = document.getElementById('in-dob').value;
+    document.getElementById('out-dob').textContent = dobVal ? formatDate(dobVal) : '-';
+    fields.forEach(f => {
+        const val = document.getElementById(f.in).value.trim();
+        document.getElementById(f.out).textContent = val || '-';
     });
 }
 
-function renderPreviewToPdfBase64() {
-    return new Promise((resolve, reject) => {
-        const element = document.getElementById('pdf-content');
-        const opt = {
-            margin: 0,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], before: '.page-2' }
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+/* MODIFIED: Enhanced loadImageIntoPreview to handle cropped data and PDF files */
+async function loadImageIntoPreview(inputId, outputId, placeholder) {
+    const outputEl = document.getElementById(outputId);
+
+    /* Employee Photo: use cropped version if available */
+    if (inputId === 'in-emp-photo' && croppedEmployeePhoto) {
+        outputEl.src = croppedEmployeePhoto;
+        return;
+    }
+
+    /* Aadhaar: use cropped version if available */
+    if (inputId === 'in-aadhaar-photo' && croppedAadhaarPhoto) {
+        outputEl.src = croppedAadhaarPhoto;
+        return;
+    }
+
+    /* PAN: use cropped version if available */
+    if (inputId === 'in-pan-photo' && croppedPanPhoto) {
+        outputEl.src = croppedPanPhoto;
+        return;
+    }
+
+    const fileInput = document.getElementById(inputId);
+    if (!fileInput.files || !fileInput.files.length) {
+        outputEl.src = placeholder;
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    /* Handle PDF files: convert first page to image using pdf.js */
+    if (file.type === 'application/pdf') {
+        try {
+            const imgDataUrl = await pdfToImage(file, outputId.includes('emp-photo') ? 400 : 800);
+            /* Store the converted image for reuse */
+            if (inputId === 'in-aadhaar-photo') croppedAadhaarPhoto = imgDataUrl;
+            if (inputId === 'in-pan-photo') croppedPanPhoto = imgDataUrl;
+            outputEl.src = imgDataUrl;
+        } catch (pdfErr) {
+            console.error('PDF conversion failed:', pdfErr);
+            /* Fallback: show PDF placeholder in the attachment box */
+            showPdfPlaceholder(outputId, file.name);
+        }
+        return;
+    }
+
+    /* Handle image files (no crop was applied, read directly) */
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            outputEl.src = e.target.result;
+            resolve();
         };
-        html2pdf().set(opt).from(element).toPdf().output('blob')
-            .then(blob => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            }).catch(reject);
+        reader.onerror = () => { outputEl.src = placeholder; resolve(); };
+        reader.readAsDataURL(file);
+    });
+}
+
+/* Show a styled PDF placeholder when PDF conversion fails */
+function showPdfPlaceholder(outputId, filename) {
+    const el = document.getElementById(outputId);
+    const parentBox = el.closest('.attachment-box');
+    if (parentBox) {
+        const ph = document.createElement('div');
+        ph.className = 'pdf-attachment-placeholder';
+        ph.innerHTML = `
+            <i class="fa-solid fa-file-pdf"></i>
+            <div class="pdf-ph-title">PDF Document</div>
+            <div class="pdf-ph-fname">${filename || 'Uploaded PDF'}</div>
+        `;
+        el.style.display = 'none';
+        parentBox.appendChild(ph);
+    }
+}
+
+async function renderPreviewToPdfBase64() {
+    const element = document.getElementById('pdf-content');
+    const opt = {
+        margin: 0,
+        filename: 'employee_profile.pdf',
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+    const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(pdfBlob);
     });
 }
 
@@ -880,353 +1674,334 @@ function buildSheetPayload() {
     return {
         empId: document.getElementById('in-emp-id').value.trim(),
         name: document.getElementById('in-name').value.trim(),
-        designation: document.getElementById('in-designation').value.trim(),
         father: document.getElementById('in-father').value.trim(),
+        designation: document.getElementById('in-designation').value.trim(),
         dob: document.getElementById('in-dob').value,
         gender: document.getElementById('in-gender').value,
         blood: document.getElementById('in-blood').value,
-        mobile: document.getElementById('in-phone1').value.trim(),
-        organization: document.getElementById('in-org').value.trim(),
-        emergencyContact: document.getElementById('in-phone2').value.trim(),
+        org: document.getElementById('in-org').value.trim(),
+        phone1: document.getElementById('in-phone1').value.trim(),
+        phone2: document.getElementById('in-phone2').value.trim(),
         relation: document.getElementById('in-relation').value,
         doj: document.getElementById('in-doj').value,
         uan: document.getElementById('in-uan').value.trim(),
         transport: document.getElementById('in-transport').value.trim(),
-        workingStatus: document.getElementById('in-working-state').value,
-        aadhaar: document.getElementById('in-aadhaar').value.replace(/\D/g, ''),
-        pan: document.getElementById('in-pan').value.toUpperCase().trim()
+        workingState: document.getElementById('in-working-state').value,
+        aadhaar: document.getElementById('in-aadhaar').value.trim(),
+        pan: document.getElementById('in-pan').value.trim().toUpperCase(),
+        timestamp: new Date().toISOString()
     };
 }
 
-function goBack() { previewContainer.style.display = 'none'; formContainer.style.display = 'block'; window.scrollTo(0, 0); }
-function resetAll() { if (confirm('Clear all data?')) { form.reset(); document.querySelectorAll('.error').forEach(el => el.classList.remove('error')); } }
-function downloadPDF() { window.print(); }
-function formatDate(s) { if (!s) return '-'; const [y, m, d] = s.split('-'); return d + '/' + m + '/' + y; }
-function formatID(str, i) { if (!str) return '-'; return str.match(new RegExp('.{1,' + i + '}', 'g')).join(' '); }
-function sanitizeFileName(name) { return String(name || '').replace(/[^a-zA-Z0-9]/g, '_'); }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-function escapeHtml(str) { return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-
-/* ============================================================
- * LOCKER (local storage) — save / view / download / delete
- * ============================================================ */
-
-// Save current form data + images as base64 into localStorage
-async function saveToLocker() {
-    if (!validateForm()) {
-        showToast('Please fill in all required (*) fields before saving to locker.', 'error');
-        return;
-    }
-    showLoading('Saving to Locker...', 'Encoding images');
-    try {
-        const empPhoto = await fileToBase64('in-emp-photo');
-        const aadhaarPhoto = await fileToBase64('in-aadhaar-photo');
-        const panPhoto = await fileToBase64('in-pan-photo');
-
-        const record = {
-            id: Date.now(),
-            savedAt: new Date().toISOString(),
-            empId: document.getElementById('in-emp-id').value.trim(),
-            name: document.getElementById('in-name').value.trim(),
-            designation: document.getElementById('in-designation').value.trim(),
-            father: document.getElementById('in-father').value.trim(),
-            dob: document.getElementById('in-dob').value,
-            gender: document.getElementById('in-gender').value,
-            blood: document.getElementById('in-blood').value,
-            mobile: document.getElementById('in-phone1').value.trim(),
-            organization: document.getElementById('in-org').value.trim(),
-            emergencyContact: document.getElementById('in-phone2').value.trim(),
-            relation: document.getElementById('in-relation').value,
-            doj: document.getElementById('in-doj').value,
-            uan: document.getElementById('in-uan').value.trim(),
-            transport: document.getElementById('in-transport').value.trim(),
-            workingStatus: document.getElementById('in-working-state').value,
-            aadhaar: document.getElementById('in-aadhaar').value.replace(/\D/g, ''),
-            pan: document.getElementById('in-pan').value.toUpperCase().trim(),
-            empPhoto: empPhoto,
-            aadhaarPhoto: aadhaarPhoto,
-            panPhoto: panPhoto
-        };
-
-        const list = getLocker();
-        list.unshift(record);
-        // Cap at 50 records to stay within localStorage quota (~5MB)
-        if (list.length > 50) list.length = 50;
-        try {
-            localStorage.setItem(LOCKER_KEY, JSON.stringify(list));
-        } catch (quotaErr) {
-            hideLoading();
-            showToast('Storage full. Delete old records to save new ones.', 'error', 5000);
-            return;
-        }
-        hideLoading();
-        updateLockerStats();
-        showToast('<strong>Saved to Locker!</strong><br>' + record.empId + ' — ' + record.name, 'success', 3500);
-        // Auto-unlock since the user just saved a record (they're already using the form)
-        lockerUnlocked = true;
-        // Switch to locker tab to show the new entry
-        switchTab('locker', document.querySelector('.nav-btn[data-tab="locker"]'));
-    } catch (err) {
-        hideLoading();
-        showToast('Error saving to locker: ' + err.message, 'error');
-    }
+function sanitizeFileName(str) {
+    return str.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_');
 }
 
-function fileToBase64(inputId) {
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function downloadPDF() {
+    const element = document.getElementById('pdf-content');
+    const empId = document.getElementById('in-emp-id').value.trim() || 'EMP';
+    const name = document.getElementById('in-name').value.trim() || 'Record';
+    const opt = {
+        margin: 0,
+        filename: sanitizeFileName(empId) + '_' + sanitizeFileName(name) + '.pdf',
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+    html2pdf().set(opt).from(element).save();
+    showToast('PDF download started.', 'info', 2000);
+}
+
+function goBack() {
+    previewContainer.style.display = 'none';
+    formContainer.style.display = 'block';
+    window.scrollTo(0, 0);
+}
+
+function resetAll() {
+    form.reset();
+    croppedEmployeePhoto = null;
+    croppedAadhaarPhoto = null;
+    croppedPanPhoto = null;
+    aadhaarPdfName = null;
+    panPdfName = null;
+    /* Clear file info displays */
+    ['info-emp-photo', 'info-aadhaar-photo', 'info-pan-photo'].forEach(id => {
+        document.getElementById(id).innerHTML = '';
+    });
+    /* Clear error states */
+    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+    /* Remove any PDF placeholders from preview */
+    document.querySelectorAll('.pdf-attachment-placeholder').forEach(el => el.remove());
+    document.querySelectorAll('#pdf-content img').forEach(img => {
+        if (img.style.display === 'none') img.style.display = '';
+    });
+    showToast('Form reset.', 'info', 1500);
+}
+
+/* ============================================================
+ * CREATE THUMBNAIL for locker storage
+ * ============================================================ */
+function createThumbnail(dataUrl, maxW, maxH) {
     return new Promise((resolve) => {
-        const input = document.getElementById(inputId);
-        if (!input.files || !input.files[0]) { resolve(''); return; }
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);  // full data URL
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(input.files[0]);
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+            canvas.width = Math.max(1, Math.round(img.width * scale));
+            canvas.height = Math.max(1, Math.round(img.height * scale));
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.5));
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUrl;
     });
 }
 
-function getLocker() {
-    try { return JSON.parse(localStorage.getItem(LOCKER_KEY)) || []; }
-    catch { return []; }
+/* ============================================================
+ * SAVE TO LOCKER
+ * ============================================================ */
+async function saveToLocker() {
+    if (!validateForm()) { showToast('Please fill in all required (*) fields.', 'error'); return; }
+
+    const data = buildSheetPayload();
+    showLoading('Saving to Locker...', 'Processing photo thumbnail');
+
+    try {
+        /* Create thumbnail for locker card */
+        let thumb = null;
+        const photoSrc = croppedEmployeePhoto;
+        if (photoSrc) {
+            thumb = await createThumbnail(photoSrc, 100, 125);
+        }
+        data._thumb = thumb;
+        data.savedAt = new Date().toISOString();
+
+        let locker = {};
+        try { locker = JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'); } catch(e) { locker = {}; }
+        locker[data.empId] = data;
+
+        localStorage.setItem(LOCKER_KEY, JSON.stringify(locker));
+        updateLockerBadge();
+        hideLoading();
+        showToast(`<strong>Saved to Locker!</strong><br>Employee ${data.name} (${data.empId}) saved.`, 'success', 3000);
+    } catch(e) {
+        hideLoading();
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+            showToast('Storage full! Delete some records or use smaller images.', 'error', 4000);
+        } else {
+            showToast('Error saving: ' + e.message, 'error');
+        }
+    }
 }
 
+/* ============================================================
+ * LOCKER RENDERING
+ * ============================================================ */
 function renderLocker() {
-    const list = getLocker();
-    const search = (document.getElementById('locker-search').value || '').toLowerCase().trim();
-    const filtered = search
-        ? list.filter(r =>
-            (r.empId || '').toLowerCase().includes(search) ||
-            (r.name || '').toLowerCase().includes(search) ||
-            (r.designation || '').toLowerCase().includes(search))
-        : list;
+    let locker = {};
+    try { locker = JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'); } catch(e) { locker = {}; }
+
+    const keys = Object.keys(locker);
+    const query = (document.getElementById('locker-search')?.value || '').toLowerCase().trim();
+    const filtered = query ? keys.filter(k => {
+        const r = locker[k];
+        return (r.empId || '').toLowerCase().includes(query) ||
+               (r.name || '').toLowerCase().includes(query) ||
+               (r.designation || '').toLowerCase().includes(query);
+    }) : keys;
 
     const grid = document.getElementById('locker-grid');
-    updateLockerStats();
+
+    /* Stats */
+    document.getElementById('locker-count').textContent = keys.length;
+    let totalBytes = new Blob([JSON.stringify(locker)]).size;
+    document.getElementById('locker-size').textContent = totalBytes > 1048576 ? (totalBytes / 1048576).toFixed(1) + ' MB' : (totalBytes / 1024).toFixed(1) + ' KB';
+    if (keys.length > 0) {
+        const latest = keys.reduce((a, b) => (locker[a].savedAt > locker[b].savedAt ? a : b));
+        const d = new Date(locker[latest].savedAt);
+        document.getElementById('locker-recent').textContent = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
+    } else {
+        document.getElementById('locker-recent').textContent = '-';
+    }
 
     if (filtered.length === 0) {
-        grid.innerHTML = `
-            <div class="locker-empty" style="grid-column: 1 / -1;">
-                <i class="fa-solid fa-vault"></i>
-                <h3>${search ? 'No matching records' : 'Locker is Empty'}</h3>
-                <p>${search ? 'Try a different search term.' : 'Fill the employee form and click "Save to Locker" to add records here.'}</p>
-            </div>`;
+        grid.innerHTML = `<div class="locker-empty" style="grid-column:1/-1;">
+            <i class="fa-solid fa-box-open"></i>
+            <h3>${query ? 'No matching records' : 'No records yet'}</h3>
+            <p>${query ? 'Try a different search term.' : 'Save an employee record to see it here.'}</p>
+        </div>`;
         return;
     }
 
-    grid.innerHTML = filtered.map(r => {
-        const thumb = r.empPhoto
-            ? `<img src="${r.empPhoto}" alt="">`
+    grid.innerHTML = filtered.map(key => {
+        const r = locker[key];
+        const savedDate = r.savedAt ? new Date(r.savedAt).toLocaleDateString() : '-';
+        const thumbHtml = r._thumb
+            ? `<img src="${r._thumb}" alt="Photo">`
             : `<div class="locker-thumb-empty"><i class="fa-solid fa-user"></i></div>`;
-        const saved = new Date(r.savedAt).toLocaleString();
-        return `
-        <div class="locker-card">
+        return `<div class="locker-card">
             <div class="locker-card-header">
-                <span class="locker-emp-id">${escapeHtml(r.empId)}</span>
-                <span class="locker-saved-date"><i class="fa-regular fa-clock"></i> ${saved}</span>
+                <span class="locker-emp-id">${r.empId}</span>
+                <span class="locker-saved-date">${savedDate}</span>
             </div>
             <div class="locker-card-body">
-                <div class="locker-thumb">${thumb}</div>
+                <div class="locker-thumb">${thumbHtml}</div>
                 <div class="locker-info">
-                    <div class="locker-name">${escapeHtml(r.name)}</div>
-                    <div class="locker-desig">${escapeHtml(r.designation || '-')}</div>
+                    <div class="locker-name">${r.name || '-'}</div>
+                    <div class="locker-desig">${r.designation || '-'}</div>
                     <div class="locker-meta">
-                        <span><i class="fa-solid fa-building"></i>${escapeHtml(r.organization || '-')}</span>
-                        <span><i class="fa-solid fa-phone"></i>${escapeHtml(r.mobile || '-')}</span>
-                        <span><i class="fa-solid fa-circle-check" style="color:${r.workingStatus==='Active'?'var(--success)':'var(--text-muted)'}"></i>${escapeHtml(r.workingStatus || '-')}</span>
+                        <span><i class="fa-solid fa-building"></i> ${r.org || '-'}</span>
+                        <span><i class="fa-solid fa-phone"></i> ${r.phone1 || '-'}</span>
+                        <span><i class="fa-solid fa-circle" style="color:${r.workingState==='Active'?'var(--success)':'var(--danger)'};font-size:0.5rem;"></i> ${r.workingState || '-'}</span>
                     </div>
                 </div>
             </div>
             <div class="locker-card-actions">
-                <button class="btn btn-secondary" onclick="viewLockerRecord(${r.id})"><i class="fa-solid fa-eye"></i> View</button>
-                <button class="btn btn-save" onclick="downloadLockerPDF(${r.id})"><i class="fa-solid fa-download"></i> PDF</button>
-                <button class="btn btn-danger" onclick="deleteLockerRecord(${r.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+                <button class="btn btn-secondary btn-sm" onclick="viewLockerRecord('${r.empId}')"><i class="fa-solid fa-eye"></i> View</button>
+                <button class="btn btn-accent btn-sm" onclick="downloadLockerPDF('${r.empId}')"><i class="fa-solid fa-print"></i> PDF</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteFromLocker('${r.empId}')"><i class="fa-solid fa-trash"></i> Delete</button>
             </div>
         </div>`;
     }).join('');
 }
 
-function updateLockerStats() {
-    const list = getLocker();
-    document.getElementById('locker-count').textContent = list.length;
-    document.getElementById('nav-locker-count').textContent = list.length;
-    // Storage size
-    const data = localStorage.getItem(LOCKER_KEY) || '';
-    const bytes = new Blob([data]).size;
-    const kb = (bytes / 1024).toFixed(1);
-    document.getElementById('locker-size').textContent = kb + ' KB';
-    // Last saved
-    if (list.length > 0) {
-        const last = new Date(list[0].savedAt);
-        const today = new Date();
-        const diff = Math.floor((today - last) / 86400000);
-        let label;
-        if (diff === 0) label = 'Today';
-        else if (diff === 1) label = 'Yesterday';
-        else label = diff + 'd ago';
-        document.getElementById('locker-recent').textContent = label;
-    } else {
-        document.getElementById('locker-recent').textContent = '-';
-    }
-}
-
-// View a saved record — populates A4 preview and switches view
-function viewLockerRecord(id) {
-    const list = getLocker();
-    const r = list.find(x => x.id === id);
+function viewLockerRecord(empId) {
+    let locker = {};
+    try { locker = JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'); } catch(e) {}
+    const r = locker[empId];
     if (!r) { showToast('Record not found.', 'error'); return; }
 
-    // Fill text fields
-    document.getElementById('out-emp-id').textContent = r.empId || '-';
-    document.getElementById('out-name').textContent = r.name || '-';
-    document.getElementById('out-father').textContent = r.father || '-';
-    document.getElementById('out-dob').textContent = formatDate(r.dob);
-    document.getElementById('out-gender').textContent = r.gender || '-';
-    document.getElementById('out-blood').textContent = r.blood || '-';
-    document.getElementById('out-org').textContent = r.organization || '-';
-    document.getElementById('out-phone1').textContent = r.mobile || '-';
-    document.getElementById('out-phone2').textContent = r.emergencyContact || '-';
-    document.getElementById('out-relation').textContent = r.relation || '-';
-    document.getElementById('out-designation').textContent = r.designation || '-';
-    document.getElementById('out-doj').textContent = formatDate(r.doj);
-    document.getElementById('out-uan').textContent = r.uan || '-';
-    document.getElementById('out-transport').textContent = r.transport || '-';
-    document.getElementById('out-working-state').textContent = r.workingStatus || '-';
-    document.getElementById('out-aadhaar').textContent = r.aadhaar ? formatID(r.aadhaar, 4) : '-';
-    document.getElementById('out-pan').textContent = r.pan || '-';
-    document.getElementById('out-emp-id-2').textContent = r.empId || '-';
-    document.getElementById('out-timestamp').textContent = new Date(r.savedAt).toLocaleString();
+    /* Populate form with locker data */
+    document.getElementById('in-emp-id').value = r.empId || '';
+    document.getElementById('in-name').value = r.name || '';
+    document.getElementById('in-designation').value = r.designation || '';
+    document.getElementById('in-father').value = r.father || '';
+    document.getElementById('in-dob').value = r.dob || '';
+    document.getElementById('in-gender').value = r.gender || '';
+    document.getElementById('in-blood').value = r.blood || '';
+    document.getElementById('in-org').value = r.org || '';
+    document.getElementById('in-phone1').value = r.phone1 || '';
+    document.getElementById('in-phone2').value = r.phone2 || '';
+    document.getElementById('in-relation').value = r.relation || '';
+    document.getElementById('in-doj').value = r.doj || '';
+    document.getElementById('in-uan').value = r.uan || '';
+    document.getElementById('in-transport').value = r.transport || '';
+    document.getElementById('in-working-state').value = r.workingState || '';
+    document.getElementById('in-aadhaar').value = r.aadhaar || '';
+    document.getElementById('in-pan').value = r.pan || '';
 
-    // Images
-    document.getElementById('out-emp-photo').src = r.empPhoto || 'https://via.placeholder.com/180x220?text=No+Photo';
-    document.getElementById('out-aadhaar-photo').src = r.aadhaarPhoto || 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload';
-    document.getElementById('out-pan-photo').src = r.panPhoto || 'https://via.placeholder.com/600x400?text=No+PAN+Upload';
+    /* Clear crop states for re-upload */
+    croppedEmployeePhoto = null;
+    croppedAadhaarPhoto = null;
+    croppedPanPhoto = null;
 
-    // Show preview, hide form
-    document.getElementById('tab-locker').classList.remove('active');
-    document.getElementById('tab-employee').classList.add('active');
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.nav-btn[data-tab="employee"]').classList.add('active');
-    formContainer.style.display = 'none';
-    previewContainer.style.display = 'block';
-    window.scrollTo(0, 0);
-    showToast('Viewing saved record: ' + r.empId, 'info', 2500);
+    switchTab('employee', document.querySelector('.nav-btn[data-tab=employee]'));
+    showToast('Record loaded into form. You can edit and regenerate.', 'info', 3000);
 }
 
-// Download a saved record as PDF directly (no preview needed)
-async function downloadLockerPDF(id) {
-    const list = getLocker();
-    const r = list.find(x => x.id === id);
+async function downloadLockerPDF(empId) {
+    let locker = {};
+    try { locker = JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'); } catch(e) {}
+    const r = locker[empId];
     if (!r) { showToast('Record not found.', 'error'); return; }
 
-    showLoading('Generating PDF...', 'Building A4 document');
+    showLoading('Generating PDF...', 'Creating document for ' + r.name);
+
     try {
-        // Build the A4 HTML from saved data
-        const html = buildA4Html(r);
+        /* Build a temporary A4 HTML */
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = 'position:fixed;left:-9999px;top:0;';
+        tempDiv.innerHTML = buildA4Html(r);
+        document.body.appendChild(tempDiv);
+
         const opt = {
-            margin: 0,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'] }
+            margin: 0, filename: sanitizeFileName(r.empId) + '_' + sanitizeFileName(r.name) + '.pdf',
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-        const fileName = sanitizeFileName(r.empId) + '_' + sanitizeFileName(r.name) + '.pdf';
-        await html2pdf().set(opt).from(html).save(fileName);
+        await html2pdf().set(opt).from(tempDiv).save();
+        document.body.removeChild(tempDiv);
         hideLoading();
-        showToast('PDF downloaded: ' + fileName, 'success', 3500);
-    } catch (err) {
+        showToast('PDF downloaded!', 'success', 2000);
+    } catch(err) {
+        document.body.removeChild(tempDiv);
         hideLoading();
-        showToast('PDF error: ' + err.message, 'error');
+        showToast('Error generating PDF: ' + err.message, 'error');
     }
 }
 
-// Build full A4 HTML string from a record (used by downloadLockerPDF)
 function buildA4Html(r) {
-    const empPhoto = r.empPhoto || 'https://via.placeholder.com/180x220?text=No+Photo';
-    const aadhaarPhoto = r.aadhaarPhoto || 'https://via.placeholder.com/600x400?text=No+Aadhaar+Upload';
-    const panPhoto = r.panPhoto || 'https://via.placeholder.com/600x400?text=No+PAN+Upload';
-    const ts = new Date(r.savedAt).toLocaleString();
-    const aadhaar = r.aadhaar ? formatID(r.aadhaar, 4) : '-';
-    return `
-    <div style="font-family:'Segoe UI',sans-serif;">
-        <div style="background:white;color:#333;width:210mm;min-height:297mm;padding:20mm;position:relative;box-sizing:border-box;">
-            <div style="text-align:center;border-bottom:2px solid #003366;padding-bottom:15px;margin-bottom:25px;">
-                <h2 style="font-size:26px;color:#003366;text-transform:uppercase;letter-spacing:1px;margin:0;">Employee Profile Record</h2>
-                <p style="color:#666;font-size:13px;margin:5px 0 0 0;">Official Master Data &amp; Verification Document</p>
+    const fmtDate = (d) => { if(!d) return '-'; const dt=new Date(d); return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear(); };
+    const photoSrc = r._thumb || 'https://via.placeholder.com/180x220?text=No+Photo';
+    return `<div style="background:white;color:#333;width:210mm;padding:20mm;font-family:Segoe UI,sans-serif;">
+        <div style="text-align:center;border-bottom:2px solid #003366;padding-bottom:15px;margin-bottom:25px;">
+            <h2 style="font-size:26px;color:#003366;text-transform:uppercase;letter-spacing:1px;">Employee Profile Record</h2>
+            <p style="color:#666;font-size:13px;">Official Master Data Document</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:30px;">
+            <div style="flex:1.5;">
+                <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;border-left:4px solid #d32f2f;text-transform:uppercase;">Personal Information</div>
+                ${dataRow('Employee ID', r.empId)}${dataRow('Name', r.name)}${dataRow("Father's Name", r.father)}${dataRow('Date of Birth', fmtDate(r.dob))}${dataRow('Gender', r.gender)}${dataRow('Blood Group', r.blood)}
+                <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin:15px 0 8px;border-left:4px solid #d32f2f;text-transform:uppercase;">Contact Details</div>
+                ${dataRow('Organization', r.org)}${dataRow('Personal No', r.phone1)}${dataRow('Emergency No', (r.phone2||'-')+' ('+(r.relation||'-')+')')}
+                <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin:15px 0 8px;border-left:4px solid #d32f2f;text-transform:uppercase;">Employment Details</div>
+                ${dataRow('Designation', r.designation)}${dataRow('Date of Joining', fmtDate(r.doj))}${dataRow('UAN Number', r.uan)}${dataRow('Transport Mode', r.transport)}${dataRow('Working Status', r.workingState)}
+                <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin:15px 0 8px;border-left:4px solid #d32f2f;text-transform:uppercase;">Identification</div>
+                ${dataRow('Aadhaar Number', r.aadhaar)}${dataRow('PAN Number', r.pan)}
             </div>
-            <div style="display:flex;justify-content:space-between;gap:30px;align-items:flex-start;">
-                <div style="flex:1.5;">
-                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">1. Personal Information</div>
-                    ${row('Employee ID', r.empId)} ${row('Name', r.name)} ${row("Father's Name", r.father)}
-                    ${row('Date of Birth', formatDate(r.dob))} ${row('Gender', r.gender)} ${row('Blood Group', r.blood)}
-                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">2. Contact Details</div>
-                    ${row('Organization', r.organization)} ${row('Personal No', r.mobile)} ${row('Emergency No', (r.emergencyContact||'-') + ' (' + (r.relation||'-') + ')')}
-                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">3. Employment Details</div>
-                    ${row('Designation', r.designation)} ${row('Date of Joining', formatDate(r.doj))} ${row('UAN Number', r.uan)}
-                    ${row('Transport Mode', r.transport)} ${row('Working Status', r.workingStatus)}
-                    <div style="font-size:14px;font-weight:bold;color:#003366;background:#eef2f5;padding:4px 8px;margin-bottom:8px;margin-top:15px;border-left:4px solid #d32f2f;text-transform:uppercase;">4. Identification Numbers</div>
-                    ${row('Aadhaar Number', aadhaar)} ${row('PAN Number', r.pan)}
-                </div>
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-                    <div style="width:180px;height:220px;border:2px solid #333;background:#f9f9f9;overflow:hidden;margin-bottom:20px;">
-                        <img src="${empPhoto}" style="width:100%;height:100%;object-fit:cover;">
-                    </div>
-                    <div style="width:100%;text-align:right;margin-top:20px;">
-                        <div style="font-weight:bold;color:#333;">Authorized Signature</div>
-                        <div style="border-bottom:1px solid #333;width:100%;margin-top:5px;"></div>
-                        <div style="font-size:11px;color:#555;margin-top:5px;">HR Manager</div>
-                    </div>
-                </div>
-            </div>
-            <div style="position:absolute;bottom:10mm;left:20mm;right:20mm;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:5px;">
-                This is a system-generated record. For verification, please contact the HR Department.<br>Generated on: ${ts}
+            <div style="flex:1;text-align:center;">
+                <div style="width:180px;height:220px;border:2px solid #333;background:#f9f9f9;overflow:hidden;margin:0 auto 20px;"><img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;"></div>
+                <div style="text-align:right;margin-top:20px;"><div style="font-weight:bold;color:#333;">Authorized Signature</div><div style="border-bottom:1px solid #333;width:100%;margin-top:5px;"></div><div style="font-size:11px;color:#555;margin-top:5px;">HR Manager</div></div>
             </div>
         </div>
-        <div style="background:white;color:#333;width:210mm;min-height:297mm;padding:20mm;position:relative;box-sizing:border-box;page-break-before:always;">
-            <div style="text-align:center;border-bottom:2px solid #003366;padding-bottom:15px;margin-bottom:25px;">
-                <h2 style="font-size:26px;color:#003366;text-transform:uppercase;letter-spacing:1px;margin:0;">Identity Document Attachments</h2>
-                <p style="color:#666;font-size:13px;margin:5px 0 0 0;">Supporting Proofs for Employee ID: ${escapeHtml(r.empId||'-')}</p>
-            </div>
-            <div style="margin-top:20px;">
-                <div style="margin-bottom:40px;border:1px solid #ccc;padding:10px;">
-                    <div style="font-weight:bold;margin-bottom:10px;background:#eee;padding:5px;display:inline-block;color:#333;">Aadhaar Card</div>
-                    <img src="${aadhaarPhoto}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border:1px solid #ddd;">
-                </div>
-                <div style="margin-bottom:40px;border:1px solid #ccc;padding:10px;">
-                    <div style="font-weight:bold;margin-bottom:10px;background:#eee;padding:5px;display:inline-block;color:#333;">PAN Card</div>
-                    <img src="${panPhoto}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border:1px solid #ddd;">
-                </div>
-            </div>
-            <div style="position:absolute;bottom:10mm;left:20mm;right:20mm;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:5px;">Page 2 of 2 - Confidential Document</div>
-        </div>
+        <div style="position:absolute;bottom:10mm;left:20mm;right:20mm;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:5px;">System-generated record. Generated: ${new Date().toLocaleString()}</div>
     </div>`;
 }
-function row(label, value) {
-    return `<div style="display:flex;margin-bottom:5px;border-bottom:1px dashed #eee;padding-bottom:2px;">
-        <span style="width:160px;font-weight:600;color:#555;font-size:13px;flex-shrink:0;">${label}:</span>
-        <span style="flex:1;color:#000;font-size:13px;font-weight:500;">${escapeHtml(value || '-')}</span>
-    </div>`;
-}
+function dataRow(label, value) { return `<div style="display:flex;margin-bottom:5px;border-bottom:1px dashed #eee;padding-bottom:2px;"><span style="width:160px;font-weight:600;color:#555;font-size:13px;flex-shrink:0;">${label}:</span><span style="flex:1;color:#000;font-size:13px;font-weight:500;">${value||'-'}</span></div>`; }
 
-function deleteLockerRecord(id) {
-    if (!confirm('Delete this record? This cannot be undone.')) return;
-    let list = getLocker();
-    list = list.filter(x => x.id !== id);
-    localStorage.setItem(LOCKER_KEY, JSON.stringify(list));
+function deleteFromLocker(empId) {
+    if (!confirm('Delete record ' + empId + '? This cannot be undone.')) return;
+    let locker = {};
+    try { locker = JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'); } catch(e) { return; }
+    delete locker[empId];
+    localStorage.setItem(LOCKER_KEY, JSON.stringify(locker));
+    updateLockerBadge();
     renderLocker();
-    showToast('Record deleted from locker.', 'info', 2500);
+    showToast('Record deleted.', 'info', 2000);
 }
 
 function clearAllLocker() {
-    const list = getLocker();
-    if (list.length === 0) { showToast('Locker is already empty.', 'info'); return; }
-    if (!confirm(`Delete ALL ${list.length} saved records? This cannot be undone.`)) return;
+    const keys = Object.keys(JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'));
+    if (keys.length === 0) { showToast('Locker is already empty.', 'info'); return; }
+    if (!confirm('Delete ALL ' + keys.length + ' records? This cannot be undone.')) return;
     localStorage.removeItem(LOCKER_KEY);
+    updateLockerBadge();
     renderLocker();
-    showToast('All locker records cleared.', 'info', 2500);
+    showToast('All records cleared.', 'info', 2000);
 }
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-    updateLockerStats();
-    renderLocker();
+function updateLockerBadge() {
+    let locker = {};
+    try { locker = JSON.parse(localStorage.getItem(LOCKER_KEY) || '{}'); } catch(e) {}
+    const count = Object.keys(locker).length;
+    document.getElementById('nav-locker-count').textContent = count;
+    document.getElementById('nav-locker-count').style.display = count > 0 ? 'inline' : 'none';
+}
+
+/* ============================================================
+ * INITIALIZATION
+ * ============================================================ */
+updateLockerBadge();
+
+/* Clear input error on focus */
+document.querySelectorAll('#dataForm input, #dataForm select').forEach(el => {
+    el.addEventListener('focus', () => el.classList.remove('error'));
 });
 </script>
 </body>
